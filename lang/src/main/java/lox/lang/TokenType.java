@@ -1,4 +1,4 @@
-package lox;
+package lox.lang;
 
 public enum TokenType {
     PAREN_LEFT, PAREN_RIGHT, BRACE_LEFT, BRACE_RIGHT, COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR, BANG, BANG_EQUAL,

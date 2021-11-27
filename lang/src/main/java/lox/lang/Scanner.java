@@ -1,7 +1,7 @@
-package lox;
+package lox.lang;
 
-import static lox.TokenType.*;
 import static java.util.Map.entry;
+import static lox.lang.TokenType.*;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -12,9 +12,15 @@ dependencies {
 }
 
 application {
-    mainClass = 'lox.Lox'
+    mainClass = 'lox.lang.Lox'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+sourceSets.main.java.srcDir 'src/gen/java'
+
+tasks.named('compileJava') {
+    dependsOn ':tool:generate'
 }

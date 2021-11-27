@@ -1,4 +1,4 @@
-package lox;
+package lox.lang;
 
 import lombok.NonNull;
 import lombok.Value;

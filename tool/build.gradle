@@ -1,0 +1,25 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.2'
+}
+
+application {
+    mainClass = 'lox.tool.GenerateAst'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+task generate(type: JavaExec) {
+    args rootProject.file('lang/src/gen/java')
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'lox.tool.GenerateAst'
+}

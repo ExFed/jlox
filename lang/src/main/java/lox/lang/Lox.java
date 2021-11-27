@@ -1,4 +1,4 @@
-package lox;
+package lox.lang;
 
 import java.io.BufferedReader;
 import java.io.IOException;
