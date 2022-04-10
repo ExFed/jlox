@@ -24,7 +24,39 @@ class Parser {
     }
 
     private Expr expression() {
-        return equality();
+        return sequence();
+    }
+
+    // sequence -> conditional ( ',' conditional ) *
+    private Expr sequence() {
+        var expr = conditional();
+
+        while (match(COMMA)) {
+            var operator = previous();
+            var right = conditional();
+            expr = new Expr.Binary(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    // conditional -> equality ( '?' expression ':' expression )?
+    private Expr conditional() {
+        var expr = equality();
+
+        if (match(QUESTION)) {
+            var question = previous();
+            var truthy = expression();
+            if (match(COLON)) {
+                var colon = previous();
+                var falsy = expression();
+                expr = new Expr.Ternary(expr, question, truthy, colon, falsy);
+            } else {
+                throw error(peek(), "Expect ':' in ternary conditional.");
+            }
+        }
+
+        return expr;
     }
 
     private Expr equality() {
@@ -65,6 +97,7 @@ class Parser {
 
     private Expr factor() {
         var expr = unary();
+
         while (match(SLASH, STAR)) {
             var operator = previous();
             var right = unary();
@@ -79,6 +112,10 @@ class Parser {
             var operator = previous();
             var right = unary();
             return new Expr.Unary(operator, right);
+        } else if (match(PLUS)) {
+            var operator = previous();
+            unary();
+            throw error(operator, "Unsupported unary operator");
         }
 
         return primary();

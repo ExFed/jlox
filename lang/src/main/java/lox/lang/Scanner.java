@@ -86,6 +86,12 @@ class Scanner {
         case '+':
             addToken(PLUS);
             break;
+        case '?':
+            addToken(QUESTION);
+            break;
+        case ':':
+            addToken(COLON);
+            break;
         case ';':
             addToken(SEMICOLON);
             break;
