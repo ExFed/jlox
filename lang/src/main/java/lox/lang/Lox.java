@@ -23,7 +23,12 @@ public class Lox {
     }
 
     private static int runFile(String path) throws IOException {
-        var bytes = Files.readAllBytes(Paths.get(path));
+        byte[] bytes;
+        if ("-".equals(path)) {
+            bytes = System.in.readAllBytes();
+        } else {
+            bytes = Files.readAllBytes(Paths.get(path));
+        }
         run(new String(bytes, Charset.defaultCharset()));
 
         if (hadError) {

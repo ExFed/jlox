@@ -115,6 +115,8 @@ class Scanner {
                 while (peek() != '\n' && !isAtEnd()) {
                     advance();
                 }
+            } else if (match('*')) {
+                blockComment();
             } else {
                 addToken(SLASH);
             }
@@ -225,6 +227,26 @@ class Scanner {
         }
         advance();
         addToken(STRING, value.toString());
+    }
+
+    private void blockComment() {
+        while (!isAtEnd() && !(peek() == '*' && peekNext() == '/')) {
+            if (peek() == '\n') {
+                line++;
+            }
+            var c = advance();
+            if (c == '/' && match('*')) {
+                blockComment(); // nested comment
+            }
+        }
+
+        if (isAtEnd()) {
+            Lox.error(line, "Unterminated comment.");
+            return;
+        }
+        // discard the `*/`
+        advance();
+        advance();
     }
 
     private char advance() {
