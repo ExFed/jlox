@@ -187,19 +187,44 @@ class Scanner {
     }
 
     private void string() {
-        while (peek() != '"' && !isAtEnd()) {
+        var value = new StringBuilder();
+        var esc = false;
+        while ((peek() != '"' || esc) && !isAtEnd()) {
             if (peek() == '\n') {
                 line++;
             }
-            advance();
+
+            if (esc) {
+                switch (peek()) {
+                    case 'n':
+                        advance();
+                        value.append('\n');
+                        break;
+                    case '\n':
+                        advance(); // skip newlines
+                        break;
+                    case '\\':
+                    case '\"':
+                        value.append(advance());
+                        break;
+                    default:
+                        Lox.error(line, "Unexpected escape sequence.");
+                        return;
+                }
+                esc = false;
+            } else if (peek() == '\\') {
+                advance(); // skip escape character
+                esc = true;
+            } else {
+                value.append(advance());
+            }
         }
         if (isAtEnd()) {
             Lox.error(line, "Unterminated string.");
             return;
         }
         advance();
-        var value = source.substring(start + 1, current - 1);
-        addToken(STRING, value);
+        addToken(STRING, value.toString());
     }
 
     private char advance() {
