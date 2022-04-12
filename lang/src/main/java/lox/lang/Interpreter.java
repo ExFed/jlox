@@ -23,6 +23,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitAssignExpr(Expr.Assign expr) {
+        var value = evaluate(expr.getValue());
+        environment.assign(expr.getName(), value);
+        return value;
+    }
+
+    @Override
     public Object visitGroupingExpr(Grouping expr) {
         return evaluate(expr.getExpression());
     }

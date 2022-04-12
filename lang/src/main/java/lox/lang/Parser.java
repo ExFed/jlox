@@ -69,8 +69,22 @@ class Parser {
         return new Stmt.Expression(expr);
     }
 
+    private Expr assignment() {
+        var expr = sequence();
+        if (match(EQUAL)) {
+            var equals = previous();
+            var value = assignment();
+            if (expr instanceof Expr.Variable) {
+                var name = ((Expr.Variable) expr).getName();
+                return new Expr.Assign(name, value);
+            }
+            error(equals, "Invalid assignment target.");
+        }
+        return expr;
+    }
+
     private Expr expression() {
-        return sequence();
+        return assignment();
     }
 
     // sequence -> conditional ( ',' conditional ) *
