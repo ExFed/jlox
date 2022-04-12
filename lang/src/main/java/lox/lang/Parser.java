@@ -1,5 +1,6 @@
 package lox.lang;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static lox.lang.TokenType.*;
@@ -15,12 +16,57 @@ class Parser {
         this.tokens = tokens;
     }
 
-    Expr parse() {
+    List<Stmt> parse() {
+        var statements = new ArrayList<Stmt>();
+        while (!isAtEnd()) {
+            statements.add(declaration());
+        }
+        return statements;
+    }
+
+    private Stmt declaration() {
         try {
-            return expression();
+            if (match(VAR)) {
+                return varDeclaration();
+            }
+
+            return statement();
         } catch (ParseError error) {
+            synchronize();
             return null;
         }
+    }
+
+    private Stmt statement() {
+        if (match(PRINT)) {
+            return printStatement();
+        }
+
+        return expressionStatement();
+    }
+
+    private Stmt printStatement() {
+        var value = expression();
+        consume(SEMICOLON, "Expect ';' after expression.");
+        return new Stmt.Print(value);
+    }
+
+    private Stmt varDeclaration() {
+        var name = consume(IDENTIFIER, "Expect variable name.");
+
+        Expr initializer = null;
+        if (match(EQUAL)) {
+            initializer = expression();
+        }
+
+        consume(SEMICOLON, "Expect ';' after variable declaration.");
+        return new Stmt.Var(name, initializer);
+    }
+
+    private Stmt expressionStatement() {
+        var expr = expression();
+        consume(SEMICOLON, "Expect ';' after expression.");
+        return new Stmt.Expression(expr);
     }
 
     private Expr expression() {
@@ -47,13 +93,10 @@ class Parser {
         if (match(QUESTION)) {
             var question = previous();
             var truthy = expression();
-            if (match(COLON)) {
-                var colon = previous();
-                var falsy = expression();
-                expr = new Expr.Ternary(expr, question, truthy, colon, falsy);
-            } else {
-                throw error(peek(), "Expect ':' in ternary conditional.");
-            }
+            consume(COLON, "Expect ':' in ternary conditional.");
+            var colon = previous();
+            var falsy = expression();
+            expr = new Expr.Ternary(expr, question, truthy, colon, falsy);
         }
 
         return expr;
@@ -128,10 +171,10 @@ class Parser {
             return new Expr.Literal(true);
         if (match(NIL))
             return new Expr.Literal(null);
-
         if (match(NUMBER, STRING))
             return new Expr.Literal(previous().getLiteral());
-
+        if (match(IDENTIFIER))
+            return new Expr.Variable(previous());
         if (match(PAREN_LEFT)) {
             var expr = expression();
             consume(PAREN_RIGHT, "Expect ')' after expression.");

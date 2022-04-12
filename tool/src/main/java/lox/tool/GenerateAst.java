@@ -15,14 +15,19 @@ public class GenerateAst {
             System.exit(64);
         }
         var outputDir = args[0];
-        var types = Arrays.asList(
+        defineAst(outputDir, "Expr", Arrays.asList(
+            "Ternary    : Expr left, Token leftOp, Expr middle, Token rightOp, Expr right",
             "Binary     : Expr left, Token operator, Expr right",
             "Grouping   : Expr expression",
             "Literal    : Object value",
             "Unary      : Token operator, Expr right",
-            "Ternary    : Expr left, Token leftOp, Expr middle, Token rightOp, Expr right"
-        );
-        defineAst(outputDir, "Expr", types);
+            "Variable   : Token name"
+        ));
+        defineAst(outputDir, "Stmt", Arrays.asList(
+            "Expression : Expr expression",
+            "Print      : Expr expression",
+            "Var        : Token name, Expr initializer"
+        ));
     }
 
     private static void defineAst(String outputDir, String baseName, List<String> types) throws IOException {

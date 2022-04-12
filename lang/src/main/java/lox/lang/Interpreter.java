@@ -1,17 +1,22 @@
 package lox.lang;
 
+import java.util.List;
+
 import lox.lang.Expr.Binary;
 import lox.lang.Expr.Grouping;
 import lox.lang.Expr.Literal;
 import lox.lang.Expr.Ternary;
 import lox.lang.Expr.Unary;
 
-public class Interpreter implements Expr.Visitor<Object> {
+public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
-    public void interpret(Expr expression) {
+    private Environment environment = new Environment();
+
+    public void interpret(List<Stmt> statements) {
         try {
-            var value = evaluate(expression);
-            System.out.println(stringify(value));
+            for (var statement : statements) {
+                execute(statement);
+            }
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
@@ -25,6 +30,11 @@ public class Interpreter implements Expr.Visitor<Object> {
     @Override
     public Object visitLiteralExpr(Literal expr) {
         return expr.getValue();
+    }
+
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr) {
+        return environment.get(expr.getName());
     }
 
     @Override
@@ -112,6 +122,30 @@ public class Interpreter implements Expr.Visitor<Object> {
         }
     }
 
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.getExpression());
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        var value = evaluate(stmt.getExpression());
+        System.out.println(stringify(value));
+        return null;
+    }
+
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt) {
+        if (stmt.getInitializer() != null) {
+            var value = evaluate(stmt.getInitializer());
+            environment.define(stmt.getName().getLexeme(), value);
+        } else {
+            environment.declare(stmt.getName().getLexeme());
+        }
+        return null;
+    }
+
     private void checkNumberOperands(Token operator, Object... operands) {
         for (var operand : operands) {
             if (!(operand instanceof Double)) {
@@ -122,6 +156,10 @@ public class Interpreter implements Expr.Visitor<Object> {
 
     private Object evaluate(Expr expr) {
         return expr.accept(this);
+    }
+
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
     }
 
     private boolean isTruthy(Object object) {

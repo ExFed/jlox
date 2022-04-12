@@ -5,6 +5,7 @@ import lox.lang.Expr.Ternary;
 import lox.lang.Expr.Grouping;
 import lox.lang.Expr.Literal;
 import lox.lang.Expr.Unary;
+import lox.lang.Expr.Variable;
 
 public class AstPrinter implements Expr.Visitor<String> {
 
@@ -51,6 +52,11 @@ public class AstPrinter implements Expr.Visitor<String> {
     @Override
     public String visitTernaryExpr(Ternary expr) {
         return parenthesize(expr.getLeftOp().getLexeme() + expr.getRightOp().getLexeme(), expr.getLeft(), expr.getMiddle(), expr.getRight());
+    }
+
+    @Override
+    public String visitVariableExpr(Variable expr) {
+        return parenthesize("variable", expr);
     }
 
     private String parenthesize(String name, Expr... exprs) {
