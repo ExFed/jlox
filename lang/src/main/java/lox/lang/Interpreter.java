@@ -10,7 +10,15 @@ import lox.lang.Expr.Unary;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
-    private Environment environment = new Environment();
+    private final Environment environment;
+
+    Interpreter() {
+        this(new Environment());
+    }
+
+    Interpreter(Environment environment) {
+        this.environment = environment;
+    }
 
     public void interpret(List<Stmt> statements) {
         try {
@@ -130,6 +138,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Void visitBlockStmt(Stmt.Block stmt) {
+        executeBlock(stmt.getStatements());
+        return null;
+    }
+
+    @Override
     public Void visitExpressionStmt(Stmt.Expression stmt) {
         evaluate(stmt.getExpression());
         return null;
@@ -167,6 +181,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     private void execute(Stmt stmt) {
         stmt.accept(this);
+    }
+
+    private void executeBlock(List<Stmt> statements) {
+        var inner = new Interpreter(new Environment(environment));
+        for (var statement : statements) {
+            inner.execute(statement);
+        }
     }
 
     private boolean isTruthy(Object object) {
