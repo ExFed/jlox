@@ -7,6 +7,9 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
+
+import lombok.NonNull;
 
 public class Lox {
 
@@ -51,27 +54,62 @@ public class Lox {
         var input = new InputStreamReader(System.in);
         var reader = new BufferedReader(input);
 
+        var unmatchedBraces = 0;
+        var lineBuffer = new ArrayList<String>();
         for (;;) {
-            System.out.print("> ");
+            var prompt = String.format("lox:%02d> ", lineBuffer.size());
+            System.out.print(prompt);
             var line = reader.readLine();
 
-            if (line == null) {
+            if (line == null || ":q".equals(line)) {
                 break;
+            } else if (":b".equals(line)) {
+                int n = 0;
+                for (var l : lineBuffer) {
+                    System.out.println(String.format("%02d  %s", ++n, l));
+                }
+            } else if (!line.isEmpty()) {
+                lineBuffer.add(line);
+                unmatchedBraces += countUnmatchedBraces(line);
+
+                // if braces are at least balanced, flush the buffer
+                if (unmatchedBraces <= 0) {
+                    var source = String.join("\n", lineBuffer);
+                    lineBuffer.clear();
+                    unmatchedBraces = 0;
+                    runConsole(source);
+                }
+                hadError = false;
             }
 
-            if (!line.isEmpty()) {
-                runConsole(line);
-            }
-
-            hadError = false;
         }
 
         return 0;
     }
 
+    private static int countUnmatchedBraces(String line) {
+        // scan as tokens
+        var scanner = new Scanner(line);
+        var tokens = scanner.scanTokens();
+
+        // count number of unmatched braces
+        int count = 0;
+        for (var token : tokens) {
+            var type = token.getType();
+            if (type.equals(TokenType.BRACE_LEFT)) {
+                count++;
+            }
+            if (type.equals(TokenType.BRACE_RIGHT)) {
+                count--;
+            }
+        }
+        return count;
+    }
+
     private static void run(String source) {
         var scanner = new Scanner(source);
         var tokens = scanner.scanTokens();
+
         var parser = new Parser(tokens);
         var statements = parser.parse();
 
