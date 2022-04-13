@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 
 public class Lox {
 
@@ -53,10 +54,15 @@ public class Lox {
         for (;;) {
             System.out.print("> ");
             var line = reader.readLine();
+
             if (line == null) {
                 break;
             }
-            run(line);
+
+            if (!line.isEmpty()) {
+                runConsole(line);
+            }
+
             hadError = false;
         }
 
@@ -69,7 +75,35 @@ public class Lox {
         var parser = new Parser(tokens);
         var statements = parser.parse();
 
-        if (hadError) return;
+        if (hadError) {
+            return;
+        }
+
+        interpreter.interpret(statements);
+    }
+
+    private static void runConsole(String source) {
+        var scanner = new Scanner(source);
+        var tokens = scanner.scanTokens();
+        var parser = new Parser(tokens);
+        var statements = parser.parse();
+
+        if (hadError) {
+            return;
+        }
+
+        // get the final statement, and print its value to console if it's evaluable
+        var stmt = statements.isEmpty() ? null : statements.get(statements.size() - 1);
+        if (stmt instanceof Stmt.Expression) {
+            var expr = ((Stmt.Expression) stmt).getExpression();
+            statements.add(new Stmt.Print(expr));
+        }
+        if (stmt instanceof Stmt.Var) {
+            var expr = ((Stmt.Var) stmt).getInitializer();
+            if (expr != null) {
+                statements.add(new Stmt.Print(expr));
+            }
+        }
 
         interpreter.interpret(statements);
     }

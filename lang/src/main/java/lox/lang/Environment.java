@@ -5,6 +5,8 @@ import java.util.Map;
 
 class Environment {
 
+    private static final Object UNDEFINED = new Object();
+
     private final Environment enclosing;
     private final Map<String, Object> values = new HashMap<>();
 
@@ -17,7 +19,7 @@ class Environment {
     }
 
     void declare(String name) {
-        define(name, null);
+        define(name, UNDEFINED);
     }
 
     void define(String name, Object value) {
@@ -26,14 +28,18 @@ class Environment {
 
     Object get(Token name) {
         if (values.containsKey(name.getLexeme())) {
-            return values.get(name.getLexeme());
+            var value = values.get(name.getLexeme());
+            if (value == UNDEFINED) {
+                throw new RuntimeError(name, "Undefined variable '" + name.getLexeme() + "'.");
+            }
+            return value;
         }
 
         if (enclosing != null) {
             return enclosing.get(name);
         }
 
-        throw new RuntimeError(name, "Undefined variable '" + name.getLexeme() + "'.");
+        throw new RuntimeError(name, "Undeclared variable '" + name.getLexeme() + "'.");
     }
 
     void assign(Token name, Object value) {
@@ -47,6 +53,6 @@ class Environment {
             return;
         }
 
-        throw new RuntimeError(name, "Undefined variable '" + name.getLexeme() + "'.");
+        throw new RuntimeError(name, "Undeclared variable '" + name.getLexeme() + "'.");
     }
 }
