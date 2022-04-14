@@ -1,5 +1,6 @@
 package lox.lang;
 
+import java.util.Arrays;
 import java.util.List;
 
 import lox.lang.Expr.Binary;
@@ -29,12 +30,12 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
     @Override
     public String visitBinaryExpr(Binary expr) {
-        return parenthesize(expr.getOperator().getLexeme(), expr.getLeft(), expr.getRight());
+        return parenthesizeExprs(expr.getOperator().getLexeme(), expr.getLeft(), expr.getRight());
     }
 
     @Override
     public String visitGroupingExpr(Grouping expr) {
-        return parenthesize("group", expr.getExpression());
+        return parenthesizeExprs("group", expr.getExpression());
     }
 
     @Override
@@ -42,17 +43,20 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         if (expr.getValue() == null) {
             return "nil";
         }
+        if (expr.getValue() instanceof String) {
+            return "\"" + expr.getValue() + "\"";
+        }
         return expr.getValue().toString();
     }
 
     @Override
     public String visitUnaryExpr(Unary expr) {
-        return parenthesize(expr.getOperator().getLexeme(), expr.getRight());
+        return parenthesizeExprs(expr.getOperator().getLexeme(), expr.getRight());
     }
 
     @Override
     public String visitTernaryExpr(Ternary expr) {
-        return parenthesize(
+        return parenthesizeExprs(
                 expr.getLeftOp().getLexeme() + expr.getRightOp().getLexeme(),
                 expr.getLeft(),
                 expr.getMiddle(),
@@ -61,27 +65,27 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
     @Override
     public String visitVariableExpr(Variable expr) {
-        return parenthesize("variable " + expr.getName().getLexeme());
+        return parenthesizeExprs("variable " + expr.getName().getLexeme());
     }
 
     @Override
     public String visitAssignExpr(Expr.Assign expr) {
-        return parenthesize("= " + expr.getName().getLexeme(), expr.getValue());
+        return parenthesizeExprs("= " + expr.getName().getLexeme(), expr.getValue());
     }
 
     @Override
     public String visitBlockStmt(Block stmt) {
-        return parenthesize("block", stmt.getStatements());
+        return parenthesizeStmts("block", stmt.getStatements());
     }
 
     @Override
     public String visitExpressionStmt(Expression stmt) {
-        return parenthesize("stmt", stmt.getExpression());
+        return parenthesizeExprs("stmt", stmt.getExpression());
     }
 
     @Override
     public String visitPrintStmt(Print stmt) {
-        return parenthesize("print", stmt.getExpression());
+        return parenthesizeExprs("print", stmt.getExpression());
     }
 
     @Override
@@ -89,12 +93,16 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         var name = "var " + stmt.getName().getLexeme();
         var init = stmt.getInitializer();
         if (init == null) {
-            return parenthesize(name + " nil");
+            return parenthesizeExprs(name + " nil");
         }
-        return parenthesize(name, stmt.getInitializer());
+        return parenthesizeExprs(name, stmt.getInitializer());
     }
 
-    private String parenthesize(String name, Expr... exprs) {
+    private String parenthesizeExprs(String name, Expr... exprs) {
+        return parenthesizeExprs(name, Arrays.asList(exprs));
+    }
+
+    private String parenthesizeExprs(String name, List<Expr> exprs) {
         var builder = new StringBuilder();
         builder.append("(").append(name);
         for (var expr : exprs) {
@@ -103,7 +111,11 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         return builder.append(")").toString();
     }
 
-    private String parenthesize(String name, List<Stmt> stmts) {
+    private String parenthesizeStmts(String name, Stmt... stmts) {
+        return parenthesizeStmts(name, Arrays.asList(stmts));
+    }
+
+    private String parenthesizeStmts(String name, List<Stmt> stmts) {
         var builder = new StringBuilder();
         builder.append("{").append(name).append(" ");
         for (var stmt : stmts) {

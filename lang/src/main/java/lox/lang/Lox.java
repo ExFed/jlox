@@ -7,9 +7,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.List;
-
-import lombok.NonNull;
 
 public class Lox {
 
@@ -56,6 +53,7 @@ public class Lox {
 
         var unmatchedBraces = 0;
         var lineBuffer = new ArrayList<String>();
+        var printAst = false;
         for (;;) {
             var prompt = String.format("lox:%02d> ", lineBuffer.size());
             System.out.print(prompt);
@@ -68,6 +66,9 @@ public class Lox {
                 for (var l : lineBuffer) {
                     System.out.println(String.format("%02d  %s", ++n, l));
                 }
+            } else if (line.startsWith(":ast ")) {
+                printAst = Boolean.parseBoolean(line.substring(5));
+                System.out.println("print ast: " + Boolean.toString(printAst));
             } else if (!line.isEmpty()) {
                 lineBuffer.add(line);
                 unmatchedBraces += countUnmatchedBraces(line);
@@ -77,7 +78,7 @@ public class Lox {
                     var source = String.join("\n", lineBuffer);
                     lineBuffer.clear();
                     unmatchedBraces = 0;
-                    runConsole(source);
+                    runConsole(source, printAst);
                 }
                 hadError = false;
             }
@@ -120,7 +121,7 @@ public class Lox {
         interpreter.interpret(statements);
     }
 
-    private static void runConsole(String source) {
+    private static void runConsole(String source, boolean printAst) {
         var scanner = new Scanner(source);
         var tokens = scanner.scanTokens();
         var parser = new Parser(tokens);
@@ -130,19 +131,30 @@ public class Lox {
             return;
         }
 
+        if (printAst) {
+            System.out.println(new AstPrinter().print(statements));
+        }
+
         // get the final statement, and print its value to console if it's evaluable
-        var stmt = statements.isEmpty() ? null : statements.get(statements.size() - 1);
+        int lastIndex = statements.size() - 1;
+        var stmt = lastIndex > 0 ? null : statements.get(lastIndex);
+        var evaluable = false;
         if (stmt instanceof Stmt.Expression) {
             var expr = ((Stmt.Expression) stmt).getExpression();
             statements.add(new Stmt.Print(expr));
+            evaluable = true;
         }
         if (stmt instanceof Stmt.Var) {
             var expr = ((Stmt.Var) stmt).getInitializer();
             if (expr != null) {
                 statements.add(new Stmt.Print(expr));
+                evaluable  = true;
             }
         }
 
+        if (evaluable) {
+            System.out.print("lox:==> ");
+        }
         interpreter.interpret(statements);
     }
 
