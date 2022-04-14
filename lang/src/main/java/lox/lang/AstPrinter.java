@@ -120,6 +120,15 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         return parenthesizeExprs(name, stmt.getInitializer());
     }
 
+    @Override
+    public String visitWhileStmt(Stmt.While stmt) {
+        var builder = new StringBuilder().append("{while ");
+        var condition = stmt.getCondition().accept(this);
+        builder.append(condition).append(" do ");
+        var body = stmt.getBody().accept(this);
+        return builder.append(body).append("}").toString();
+    }
+
     private String parenthesizeExprs(String name, Expr... exprs) {
         return parenthesizeExprs(name, Arrays.asList(exprs));
     }
