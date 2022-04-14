@@ -38,6 +38,10 @@ class Parser {
     }
 
     private Stmt statement() {
+        if (match(IF)) {
+            return ifStatement();
+        }
+
         if (match(PRINT)) {
             return printStatement();
         }
@@ -47,6 +51,16 @@ class Parser {
         }
 
         return expressionStatement();
+    }
+
+    private Stmt ifStatement() {
+        consume(PAREN_LEFT, "Expect '(' after 'if'.");
+        var condition = expression();
+        consume(PAREN_RIGHT, "Expect ')' after if condition.");
+        var thenBranch = statement();
+        var elseBranch = match(ELSE) ? statement() : null;
+
+        return new Stmt.If(condition, thenBranch, elseBranch);
     }
 
     private Stmt printStatement() {
@@ -115,7 +129,7 @@ class Parser {
 
     // conditional -> equality ( '?' expression ':' expression )?
     private Expr conditional() {
-        var expr = equality();
+        var expr = or();
 
         if (match(QUESTION)) {
             var question = previous();
@@ -124,6 +138,30 @@ class Parser {
             var colon = previous();
             var falsy = expression();
             expr = new Expr.Ternary(expr, question, truthy, colon, falsy);
+        }
+
+        return expr;
+    }
+
+    private Expr or() {
+        var expr = and();
+
+        while (match(OR)) {
+            var operator = previous();
+            var right = and();
+            expr = new Expr.Logical(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private Expr and() {
+        var expr = equality();
+
+        while (match(AND)) {
+            var operator = previous();
+            var right = equality();
+            expr = new Expr.Logical(expr, operator, right);
         }
 
         return expr;

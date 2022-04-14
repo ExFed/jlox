@@ -7,10 +7,12 @@ import lox.lang.Expr.Binary;
 import lox.lang.Expr.Ternary;
 import lox.lang.Expr.Grouping;
 import lox.lang.Expr.Literal;
+import lox.lang.Expr.Logical;
 import lox.lang.Expr.Unary;
 import lox.lang.Expr.Variable;
 import lox.lang.Stmt.Block;
 import lox.lang.Stmt.Expression;
+import lox.lang.Stmt.If;
 import lox.lang.Stmt.Print;
 import lox.lang.Stmt.Var;
 
@@ -50,6 +52,11 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
+    public String visitLogicalExpr(Logical expr) {
+        return parenthesizeExprs(expr.getOperator().getLexeme(), expr.getLeft(), expr.getRight());
+    }
+
+    @Override
     public String visitUnaryExpr(Unary expr) {
         return parenthesizeExprs(expr.getOperator().getLexeme(), expr.getRight());
     }
@@ -84,8 +91,23 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
+    public String visitIfStmt(If stmt) {
+        var builder = new StringBuilder().append("{if ");
+        var condition = stmt.getCondition().accept(this);
+        builder.append(condition).append(" then ");
+        var thenBranch = stmt.getThenBranch().accept(this);
+        builder.append(thenBranch);
+
+        if (stmt.getElseBranch() != null) {
+            var elseBranch = stmt.getElseBranch().accept(this);
+            builder.append(" else ").append(elseBranch);
+        }
+        return builder.append("}").toString();
+    }
+
+    @Override
     public String visitPrintStmt(Print stmt) {
-        return parenthesizeExprs("print", stmt.getExpression());
+        return "{print " + stmt.getExpression().accept(this) + "}";
     }
 
     @Override

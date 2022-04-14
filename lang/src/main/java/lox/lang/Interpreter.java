@@ -48,6 +48,27 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitLogicalExpr(Expr.Logical expr) {
+        var left = evaluate(expr.getLeft());
+        var operator = expr.getOperator();
+        var leftIsTruthy = isTruthy(left);
+
+        if (operator.getType() == TokenType.OR) {
+            if (leftIsTruthy) {
+                return left;
+            }
+        } else if (operator.getType() == TokenType.AND) {
+            if (!leftIsTruthy) {
+                return left;
+            }
+        } else {
+            throw new UnsupportedOperationException("unsupported operation: " + operator);
+        }
+
+        return evaluate(expr.getRight());
+    }
+
+    @Override
     public Object visitVariableExpr(Expr.Variable expr) {
         return environment.get(expr.getName());
     }
@@ -146,6 +167,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitExpressionStmt(Stmt.Expression stmt) {
         evaluate(stmt.getExpression());
+        return null;
+    }
+
+    @Override
+    public Void visitIfStmt(Stmt.If stmt) {
+        if (isTruthy(evaluate(stmt.getCondition()))) {
+            execute(stmt.getThenBranch());
+        } else if (stmt.getElseBranch() != null) {
+            execute(stmt.getElseBranch());
+        }
         return null;
     }
 
