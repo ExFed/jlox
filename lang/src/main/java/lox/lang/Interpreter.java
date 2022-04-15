@@ -1,5 +1,6 @@
 package lox.lang;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import lox.lang.Expr.Binary;
@@ -14,10 +15,24 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     Interpreter() {
         this(new Environment());
+
+        // globals
+        this.environment.define("clock", new LoxCallable() {
+            @Override
+            public int arity() { return 0; }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return System.currentTimeMillis() / 1000d;
+            }
+
+            @Override
+            public String toString() { return "<native fn>"; }
+        });
     }
 
     Interpreter(Environment environment) {
-        this.environment = environment;
+        this.environment = new Environment(environment);
     }
 
     public void interpret(List<Stmt> statements) {
@@ -137,6 +152,27 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitCallExpr(Expr.Call expr) {
+        var callee = evaluate(expr.getCallee());
+        var arguments = new ArrayList<Object>();
+        for (var argument : expr.getArguments()) {
+            arguments.add(evaluate(argument));
+        }
+
+        if (!(callee instanceof LoxCallable)) {
+            throw new RuntimeError(expr.getParen(), "Not callable.");
+        }
+
+        var function = (LoxCallable) callee;
+        if (arguments.size() != function.arity()) {
+            throw new RuntimeError(expr.getParen(),
+                    "Expected " + function.arity() + " arguments but got " + arguments.size() + ".");
+        }
+
+        return function.call(this, arguments);
+    }
+
+    @Override
     public Object visitTernaryExpr(Ternary expr) {
         var leftOp = expr.getLeftOp();
         var rightOp = expr.getRightOp();
@@ -223,7 +259,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     private void executeBlock(List<Stmt> statements) {
-        var inner = new Interpreter(new Environment(environment));
+        var inner = new Interpreter(environment);
         for (var statement : statements) {
             inner.execute(statement);
         }
@@ -246,7 +282,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     private String stringify(Object obj) {
-        if (obj == null) return "nil";
+        if (obj == null) {
+            return "nil";
+        }
 
         var text = obj.toString();
         if (obj instanceof Double && text.endsWith(".0")) {

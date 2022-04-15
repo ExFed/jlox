@@ -1,5 +1,6 @@
 package lox.lang;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -33,6 +34,14 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     @Override
     public String visitBinaryExpr(Binary expr) {
         return parenthesizeExprs(expr.getOperator().getLexeme(), expr.getLeft(), expr.getRight());
+    }
+
+    @Override
+    public String visitCallExpr(Expr.Call expr) {
+        var exprs = new ArrayList<Expr>();
+        exprs.add(expr.getCallee());
+        exprs.addAll(expr.getArguments());
+        return parenthesizeExprs("call", exprs);
     }
 
     @Override
