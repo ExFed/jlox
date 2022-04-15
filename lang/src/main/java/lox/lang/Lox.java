@@ -69,11 +69,13 @@ public class Lox {
                     System.out.println(String.format("%02d  %s", ++n, l));
                 }
             } else if (line.startsWith(":ast ")) {
-                printAst = Boolean.parseBoolean(line.substring(5));
-                System.out.println("print ast: " + Boolean.toString(printAst));
+                var arg = line.substring(5);
+                printAst = Boolean.parseBoolean(arg) || arg.equals("on");
+                System.out.println("print ast: " + (printAst ? "on" : "off"));
             } else if (line.startsWith(":pev ")) {
-                printEvaluable = Boolean.parseBoolean(line.substring(5));
-                System.out.println("print evaluable: " + Boolean.toString(printEvaluable));
+                var arg = line.substring(5);
+                printEvaluable = Boolean.parseBoolean(arg) || arg.equals("on");
+                System.out.println("print evaluable: " + (printEvaluable ? "on" : "off"));
             } else if (!line.isEmpty()) {
                 lineBuffer.add(line);
                 unmatchedBraces += countUnmatchedBraces(line);

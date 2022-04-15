@@ -17,6 +17,7 @@ import lox.lang.Stmt.Expression;
 import lox.lang.Stmt.Function;
 import lox.lang.Stmt.If;
 import lox.lang.Stmt.Print;
+import lox.lang.Stmt.Return;
 import lox.lang.Stmt.Var;
 
 public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
@@ -126,6 +127,11 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     @Override
     public String visitPrintStmt(Print stmt) {
         return parenthesizeExprs("print", stmt.getExpression());
+    }
+
+    @Override
+    public String visitReturnStmt(Return stmt) {
+        return parenthesizeExprs(stmt.getKeyword().getLexeme(), stmt.getValue());
     }
 
     @Override

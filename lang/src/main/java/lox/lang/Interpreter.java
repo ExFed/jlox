@@ -4,12 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import lombok.Getter;
-import lox.lang.Expr.Binary;
-import lox.lang.Expr.Grouping;
-import lox.lang.Expr.Literal;
-import lox.lang.Expr.Ternary;
-import lox.lang.Expr.Unary;
-import lox.lang.Stmt.Function;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
@@ -38,6 +32,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         this.environment = environment;
     }
 
+    Interpreter push() {
+        return new Interpreter(new Environment(environment));
+    }
+
     public void interpret(List<Stmt> statements) {
         try {
             for (var statement : statements) {
@@ -56,12 +54,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Object visitGroupingExpr(Grouping expr) {
+    public Object visitGroupingExpr(Expr.Grouping expr) {
         return evaluate(expr.getExpression());
     }
 
     @Override
-    public Object visitLiteralExpr(Literal expr) {
+    public Object visitLiteralExpr(Expr.Literal expr) {
         return expr.getValue();
     }
 
@@ -92,7 +90,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Object visitUnaryExpr(Unary expr) {
+    public Object visitUnaryExpr(Expr.Unary expr) {
         var operator = expr.getOperator();
         var right = evaluate(expr.getRight());
 
@@ -108,7 +106,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Object visitBinaryExpr(Binary expr) {
+    public Object visitBinaryExpr(Expr.Binary expr) {
         var operator = expr.getOperator();
         var left = evaluate(expr.getLeft());
         var right = evaluate(expr.getRight());
@@ -176,7 +174,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Object visitTernaryExpr(Ternary expr) {
+    public Object visitTernaryExpr(Expr.Ternary expr) {
         var leftOp = expr.getLeftOp();
         var rightOp = expr.getRightOp();
         var left = evaluate(expr.getLeft());
@@ -210,7 +208,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Void visitFunctionStmt(Function stmt) {
+    public Void visitFunctionStmt(Stmt.Function stmt) {
         var function = new LoxFunction(stmt);
         environment.define(stmt.getName().getLexeme(), function);
         return null;
@@ -231,6 +229,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         var value = evaluate(stmt.getExpression());
         System.out.println(stringify(value));
         return null;
+    }
+
+    @Override
+    public Void visitReturnStmt(Stmt.Return stmt) {
+        var value = stmt.getValue() == null ? null : evaluate(stmt.getValue());
+        throw new Return(value);
     }
 
     @Override
@@ -269,7 +273,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     void executeBlock(List<Stmt> statements) {
-        var inner = new Interpreter(new Environment(environment));
+        var inner = push();
         for (var statement : statements) {
             inner.execute(statement);
         }
