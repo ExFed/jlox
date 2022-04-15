@@ -38,6 +38,10 @@ class Parser {
     }
 
     private Stmt statement() {
+        if (match(FOR)) {
+            return forStatement();
+        }
+
         if (match(IF)) {
             return ifStatement();
         }
@@ -55,6 +59,39 @@ class Parser {
         }
 
         return expressionStatement();
+    }
+
+    private Stmt forStatement() {
+        consume(PAREN_LEFT, "Expect '(' after 'for'.");
+
+        Stmt initializer;
+        if (match(SEMICOLON)) {
+            initializer = null;
+        } else if (match(VAR)) {
+            initializer = varDeclaration();
+        } else {
+            initializer = expressionStatement();
+        }
+
+        var condition = check(SEMICOLON) ? new Expr.Literal(true) : expression();
+        consume(SEMICOLON, "Expect ';' after for condition.");
+
+        var increment = check(PAREN_RIGHT) ? null : expression();
+        consume(PAREN_RIGHT, "Expect ')' after for clauses.");
+
+        var body = statement();
+        if (increment != null) {
+            var incrementStmtExpr = new Stmt.Expression(increment);
+            body = new Stmt.Block(List.of(body, incrementStmtExpr));
+        }
+
+        body = new Stmt.While(condition, body);
+
+        if (initializer != null) {
+            body = new Stmt.Block(List.of(initializer, body));
+        }
+
+        return body;
     }
 
     private Stmt ifStatement() {
