@@ -25,12 +25,14 @@ class Parser {
     }
 
     private Stmt declaration() {
+        // System.err.println("=> declaration()");
         try {
             if (match(VAR)) {
                 return varDeclaration();
             }
-            if (match(FUN)) {
-                return function("function");
+            if (check(FUN) && checkNext(IDENTIFIER)) {
+                advance();
+                return funDeclaration("function");
             }
 
             return statement();
@@ -41,6 +43,7 @@ class Parser {
     }
 
     private Stmt statement() {
+        // System.err.println("=> statement()");
         if (match(FOR)) {
             return forStatement();
         }
@@ -146,28 +149,16 @@ class Parser {
     }
 
     private Stmt expressionStatement() {
+        // System.err.println("=> expressionStatement()");
         var expr = expression();
         consume(SEMICOLON, "Expect ';' after expression.");
         return new Stmt.Expression(expr);
     }
 
-    private Stmt.Function function(String kind) {
+    private Stmt.Function funDeclaration(String kind) {
         var name = consume(IDENTIFIER, "Expect " + kind + " name.");
-        consume(PAREN_LEFT, "Expect '(' after " + kind + " name.");
-        var parameters = new ArrayList<Token>();
-        if (!check(PAREN_RIGHT)) {
-            do {
-                if (parameters.size() >= 255) {
-                    error(peek(), "Cannot declare more than 255 paramters.");
-                }
-                parameters.add(consume(IDENTIFIER, "Expect parameter name."));
-            } while(match(COMMA));
-        }
-        consume(PAREN_RIGHT, "Expect ')' after paramters.");
-
-        consume(BRACE_LEFT, "Expect '{' before " + kind + " body.");
-        var body = block();
-        return new Stmt.Function(name, parameters, body);
+        var defn = funDefinition(kind);
+        return new Stmt.Function(name, defn.getParams(), defn.getBody());
     }
 
     private List<Stmt> block() {
@@ -180,6 +171,7 @@ class Parser {
     }
 
     private Expr assignment() {
+        // System.err.println("=> assignment()");
         var expr = conditional();
         if (match(EQUAL)) {
             var equals = previous();
@@ -194,6 +186,7 @@ class Parser {
     }
 
     private Expr expression() {
+        // System.err.println("=> expression()");
         return assignment();
     }
 
@@ -212,6 +205,7 @@ class Parser {
 
     // conditional -> equality ( '?' expression ':' expression )?
     private Expr conditional() {
+        // System.err.println("=> conditional()");
         var expr = or();
 
         if (match(QUESTION)) {
@@ -227,6 +221,7 @@ class Parser {
     }
 
     private Expr or() {
+        // System.err.println("=> or()");
         var expr = and();
 
         while (match(OR)) {
@@ -239,6 +234,7 @@ class Parser {
     }
 
     private Expr and() {
+        // System.err.println("=> and()");
         var expr = equality();
 
         while (match(AND)) {
@@ -251,6 +247,7 @@ class Parser {
     }
 
     private Expr equality() {
+        // System.err.println("=> equality()");
         var expr = comparison();
 
         while (match(BANG_EQUAL, EQUAL_EQUAL)) {
@@ -263,6 +260,7 @@ class Parser {
     }
 
     private Expr comparison() {
+        // System.err.println("=> comparison()");
         var expr = term();
 
         while (match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL)) {
@@ -275,6 +273,7 @@ class Parser {
     }
 
     private Expr term() {
+        // System.err.println("=> term()");
         var expr = factor();
 
         while (match(MINUS, PLUS)) {
@@ -287,6 +286,7 @@ class Parser {
     }
 
     private Expr factor() {
+        // System.err.println("=> factor()");
         var expr = unary();
 
         while (match(SLASH, STAR)) {
@@ -313,7 +313,8 @@ class Parser {
     }
 
     private Expr call() {
-        var expr = primary();
+        // System.err.println("=> call()");
+        var expr = lambda();
         while (true) {
             if (match(PAREN_LEFT)) {
                 expr = finishCall(expr);
@@ -338,7 +339,34 @@ class Parser {
         return new Expr.Call(callee, paren, arguments);
     }
 
+    private Expr lambda() {
+        // System.err.println("=> lambda()");
+        if (match(FUN)) {
+            return funDefinition("lambda");
+        }
+        return primary();
+    }
+
+    private Expr.Lambda funDefinition(String kind) {
+        consume(PAREN_LEFT, "Expect '(' before " + kind + " parameters.");
+        var parameters = new ArrayList<Token>();
+        if (!check(PAREN_RIGHT)) {
+            do {
+                if (parameters.size() >= 255) {
+                    error(peek(), "Cannot declare more than 255 paramters.");
+                }
+                parameters.add(consume(IDENTIFIER, "Expect parameter name."));
+            } while(match(COMMA));
+        }
+        consume(PAREN_RIGHT, "Expect ')' after parameters.");
+
+        consume(BRACE_LEFT, "Expect '{' before " + kind + " body.");
+        var body = block();
+        return new Expr.Lambda(parameters, body);
+    }
+
     private Expr primary() {
+        // System.err.println("=> primary()");
         if (match(FALSE))
             return new Expr.Literal(false);
         if (match(TRUE))
@@ -407,15 +435,21 @@ class Parser {
     }
 
     private boolean check(TokenType type) {
-        if (isAtEnd())
-            return false;
-        return peek().getType() == type;
+        return !isAtEnd() && peek().getType() == type;
+    }
+
+    private boolean checkNext(TokenType type) {
+        var nextType = peekNext().getType();
+        return nextType != EOF && nextType == type;
     }
 
     private Token advance() {
-        if (!isAtEnd())
+        if (!isAtEnd()) {
             current++;
-        return previous();
+        }
+        var token = previous();
+        // System.err.println("** advance => " + token);
+        return token;
     }
 
     private boolean isAtEnd() {
@@ -424,6 +458,13 @@ class Parser {
 
     private Token peek() {
         return tokens.get(current);
+    }
+
+    private Token peekNext() {
+        if (isAtEnd()) {
+            return peek();
+        }
+        return tokens.get(current + 1);
     }
 
     private Token previous() {

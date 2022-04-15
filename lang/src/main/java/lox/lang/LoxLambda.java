@@ -5,25 +5,26 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public class LoxFunction implements LoxCallable {
-    private final Stmt.Function declaration;
+public class LoxLambda implements LoxCallable {
+    private final List<Token> params;
+    private final List<Stmt> body;
     private final Environment closure;
 
     @Override
     public int arity() {
-        return declaration.getParams().size();
+        return params.size();
     }
 
     @Override
     public Object call(Interpreter enclosing, List<Object> arguments) {
         var environment = new Environment(closure);
-        for (int i = 0; i < declaration.getParams().size(); i++) {
-            environment.define(declaration.getParams().get(i).getLexeme(), arguments.get(i));
+        for (int i = 0; i < params.size(); i++) {
+            environment.define(params.get(i).getLexeme(), arguments.get(i));
         }
 
         var interpreter = new Interpreter(environment);
         try {
-            interpreter.executeBlock(declaration.getBody());
+            interpreter.executeBlock(body);
         } catch (Return returnValue) {
             return returnValue.getValue();
         }
@@ -32,6 +33,6 @@ public class LoxFunction implements LoxCallable {
 
     @Override
     public String toString() {
-        return "<fn " + declaration.getName().getLexeme() + "/" + arity() + ">";
+        return "<fn lambda/" + arity() + ">";
     }
 }

@@ -54,6 +54,7 @@ public class Lox {
 
         var unmatchedBraces = 0;
         var lineBuffer = new ArrayList<String>();
+        var printTokens = false;
         var printAst = false;
         var printEvaluable = false;
         for (;;) {
@@ -68,6 +69,10 @@ public class Lox {
                 for (var l : lineBuffer) {
                     System.out.println(String.format("%02d  %s", ++n, l));
                 }
+            } else if (line.startsWith(":tok ")) {
+                var arg = line.substring(5);
+                printTokens = Boolean.parseBoolean(arg) || arg.equals("on");
+                System.out.println("print tokens: " + (printTokens ? "on" : "off"));
             } else if (line.startsWith(":ast ")) {
                 var arg = line.substring(5);
                 printAst = Boolean.parseBoolean(arg) || arg.equals("on");
@@ -85,7 +90,7 @@ public class Lox {
                     var source = String.join("\n", lineBuffer);
                     lineBuffer.clear();
                     unmatchedBraces = 0;
-                    runConsole(source, printAst, printEvaluable);
+                    runConsole(source, printTokens, printAst, printEvaluable);
                 }
                 hadError = false;
             }
@@ -128,9 +133,15 @@ public class Lox {
         interpreter.interpret(statements);
     }
 
-    private static void runConsole(String source, boolean printAst, boolean printEvaluable) {
+    private static void runConsole(String source, boolean printTokens, boolean printAst, boolean printEvaluable) {
         var scanner = new Scanner(source);
         var tokens = scanner.scanTokens();
+
+        if (printTokens) {
+            for (var token : tokens) {
+                System.out.println(token);
+            }
+        }
 
         var parser = new Parser(tokens);
         var statements = parser.parse();

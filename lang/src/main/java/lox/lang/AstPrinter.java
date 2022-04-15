@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import lox.lang.Expr.Binary;
 import lox.lang.Expr.Ternary;
 import lox.lang.Expr.Grouping;
+import lox.lang.Expr.Lambda;
 import lox.lang.Expr.Literal;
 import lox.lang.Expr.Logical;
 import lox.lang.Expr.Unary;
@@ -50,6 +51,12 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     @Override
     public String visitGroupingExpr(Grouping expr) {
         return parenthesizeExprs("group", expr.getExpression());
+    }
+
+    @Override
+    public String visitLambdaExpr(Lambda expr) {
+        var params = expr.getParams().stream().map(Token::getLexeme).collect(Collectors.joining(" "));
+        return "(lambda (" + params + ") " + parenthesizeStmts("body", expr.getBody()) + ")";
     }
 
     @Override
