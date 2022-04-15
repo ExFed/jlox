@@ -3,6 +3,7 @@ package lox.lang;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import lox.lang.Expr.Binary;
 import lox.lang.Expr.Ternary;
@@ -13,6 +14,7 @@ import lox.lang.Expr.Unary;
 import lox.lang.Expr.Variable;
 import lox.lang.Stmt.Block;
 import lox.lang.Stmt.Expression;
+import lox.lang.Stmt.Function;
 import lox.lang.Stmt.If;
 import lox.lang.Stmt.Print;
 import lox.lang.Stmt.Var;
@@ -115,8 +117,15 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
+    public String visitFunctionStmt(Function stmt) {
+        var params = stmt.getParams().stream().map(Token::getLexeme).collect(Collectors.joining(" "));
+        String nameAndParams = "fun " + stmt.getName().getLexeme() + "(" + params + ")";
+        return "(" + nameAndParams + " " + parenthesizeStmts("body", stmt.getBody()) + ")";
+    }
+
+    @Override
     public String visitPrintStmt(Print stmt) {
-        return "{print " + stmt.getExpression().accept(this) + "}";
+        return parenthesizeExprs("print", stmt.getExpression());
     }
 
     @Override

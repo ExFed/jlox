@@ -7,6 +7,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Lox {
 
@@ -54,6 +55,7 @@ public class Lox {
         var unmatchedBraces = 0;
         var lineBuffer = new ArrayList<String>();
         var printAst = false;
+        var printEvaluable = false;
         for (;;) {
             var prompt = String.format("lox:%02d> ", lineBuffer.size());
             System.out.print(prompt);
@@ -69,6 +71,9 @@ public class Lox {
             } else if (line.startsWith(":ast ")) {
                 printAst = Boolean.parseBoolean(line.substring(5));
                 System.out.println("print ast: " + Boolean.toString(printAst));
+            } else if (line.startsWith(":pev ")) {
+                printEvaluable = Boolean.parseBoolean(line.substring(5));
+                System.out.println("print evaluable: " + Boolean.toString(printEvaluable));
             } else if (!line.isEmpty()) {
                 lineBuffer.add(line);
                 unmatchedBraces += countUnmatchedBraces(line);
@@ -78,7 +83,7 @@ public class Lox {
                     var source = String.join("\n", lineBuffer);
                     lineBuffer.clear();
                     unmatchedBraces = 0;
-                    runConsole(source, printAst);
+                    runConsole(source, printAst, printEvaluable);
                 }
                 hadError = false;
             }
@@ -121,9 +126,10 @@ public class Lox {
         interpreter.interpret(statements);
     }
 
-    private static void runConsole(String source, boolean printAst) {
+    private static void runConsole(String source, boolean printAst, boolean printEvaluable) {
         var scanner = new Scanner(source);
         var tokens = scanner.scanTokens();
+
         var parser = new Parser(tokens);
         var statements = parser.parse();
 
@@ -135,27 +141,37 @@ public class Lox {
             System.out.println(new AstPrinter().print(statements));
         }
 
-        // get the final statement, and print its value to console if it's evaluable
-        int lastIndex = statements.size() - 1;
-        var stmt = lastIndex > 0 ? null : statements.get(lastIndex);
-        var evaluable = false;
-        if (stmt instanceof Stmt.Expression) {
-            var expr = ((Stmt.Expression) stmt).getExpression();
-            statements.add(new Stmt.Print(expr));
-            evaluable = true;
-        }
-        if (stmt instanceof Stmt.Var) {
-            var expr = ((Stmt.Var) stmt).getInitializer();
-            if (expr != null) {
-                statements.add(new Stmt.Print(expr));
-                evaluable  = true;
-            }
+        if (printEvaluable) {
+            statements = printLastEvaluable(statements);
         }
 
-        if (evaluable) {
-            System.out.print("lox:==> ");
-        }
         interpreter.interpret(statements);
+    }
+
+    private static List<Stmt> printLastEvaluable(List<Stmt> stmts) {
+        var statements = new ArrayList<>(stmts);
+        // get the final statement, and if it's evaluable, print the value (being careful of side-effects)
+        int lastIndex = statements.size() - 1;
+        var stmt = lastIndex > 0 ? null : statements.get(lastIndex);
+        if (stmt instanceof Stmt.Expression) {
+            var expr = ((Stmt.Expression) stmt).getExpression();
+            statements.set(lastIndex, printEvaluable(expr));
+        }
+        if (stmt instanceof Stmt.Var) {
+            var varDecl = (Stmt.Var) stmt;
+            var expr = varDecl.getInitializer();
+            if (expr != null) {
+                statements.add(printEvaluable(new Expr.Variable(varDecl.getName())));
+            }
+        }
+        return statements;
+    }
+
+    private static Stmt.Print printEvaluable(Expr expr) {
+        var prefixExpr = new Expr.Literal("lox:==> ");
+        var operator = new Token(TokenType.PLUS, "+", null, -1);
+        var printExpr = new Expr.Binary(prefixExpr, operator, expr);
+        return new Stmt.Print(printExpr);
     }
 
     static void error(int line, String message) {

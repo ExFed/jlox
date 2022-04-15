@@ -3,14 +3,17 @@ package lox.lang;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Getter;
 import lox.lang.Expr.Binary;
 import lox.lang.Expr.Grouping;
 import lox.lang.Expr.Literal;
 import lox.lang.Expr.Ternary;
 import lox.lang.Expr.Unary;
+import lox.lang.Stmt.Function;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
+    @Getter
     private final Environment environment;
 
     Interpreter() {
@@ -32,7 +35,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     Interpreter(Environment environment) {
-        this.environment = new Environment(environment);
+        this.environment = environment;
     }
 
     public void interpret(List<Stmt> statements) {
@@ -207,6 +210,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Void visitFunctionStmt(Function stmt) {
+        var function = new LoxFunction(stmt);
+        environment.define(stmt.getName().getLexeme(), function);
+        return null;
+    }
+
+    @Override
     public Void visitIfStmt(Stmt.If stmt) {
         if (isTruthy(evaluate(stmt.getCondition()))) {
             execute(stmt.getThenBranch());
@@ -258,8 +268,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         stmt.accept(this);
     }
 
-    private void executeBlock(List<Stmt> statements) {
-        var inner = new Interpreter(environment);
+    void executeBlock(List<Stmt> statements) {
+        var inner = new Interpreter(new Environment(environment));
         for (var statement : statements) {
             inner.execute(statement);
         }

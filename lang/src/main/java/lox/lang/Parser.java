@@ -29,6 +29,9 @@ class Parser {
             if (match(VAR)) {
                 return varDeclaration();
             }
+            if (match(FUN)) {
+                return function("function");
+            }
 
             return statement();
         } catch (ParseError error) {
@@ -137,6 +140,25 @@ class Parser {
         return new Stmt.Expression(expr);
     }
 
+    private Stmt.Function function(String kind) {
+        var name = consume(IDENTIFIER, "Expect " + kind + " name.");
+        consume(PAREN_LEFT, "Expect '(' after " + kind + " name.");
+        var parameters = new ArrayList<Token>();
+        if (!check(PAREN_RIGHT)) {
+            do {
+                if (parameters.size() >= 255) {
+                    error(peek(), "Cannot declare more than 255 paramters.");
+                }
+                parameters.add(consume(IDENTIFIER, "Expect parameter name."));
+            } while(match(COMMA));
+        }
+        consume(PAREN_RIGHT, "Expect ')' after paramters.");
+
+        consume(BRACE_LEFT, "Expect '{' before " + kind + " body.");
+        var body = block();
+        return new Stmt.Function(name, parameters, body);
+    }
+
     private List<Stmt> block() {
         var statements = new ArrayList<Stmt>();
         while (!check(BRACE_RIGHT) && !isAtEnd()) {
@@ -147,7 +169,7 @@ class Parser {
     }
 
     private Expr assignment() {
-        var expr = sequence();
+        var expr = conditional();
         if (match(EQUAL)) {
             var equals = previous();
             var value = assignment();
