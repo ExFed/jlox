@@ -22,7 +22,7 @@ public class LoxLambda implements LoxCallable {
             environment.define(params.get(i).getLexeme(), arguments.get(i));
         }
 
-        var interpreter = new Interpreter(environment);
+        var interpreter = enclosing.withEnvironment(environment);
         try {
             interpreter.executeBlock(body);
         } catch (Return returnValue) {

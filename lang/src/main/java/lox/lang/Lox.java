@@ -9,6 +9,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class Lox {
 
     public static void main(String[] args) throws IOException {
@@ -54,9 +57,7 @@ public class Lox {
 
         var unmatchedBraces = 0;
         var lineBuffer = new ArrayList<String>();
-        var printTokens = false;
-        var printAst = false;
-        var printEvaluable = false;
+        var flags = new Flags();
         for (;;) {
             var prompt = String.format("lox:%02d> ", lineBuffer.size());
             System.out.print(prompt);
@@ -71,16 +72,16 @@ public class Lox {
                 }
             } else if (line.startsWith(":tok ")) {
                 var arg = line.substring(5);
-                printTokens = Boolean.parseBoolean(arg) || arg.equals("on");
-                System.out.println("print tokens: " + (printTokens ? "on" : "off"));
+                flags.setPrintTokens(Boolean.parseBoolean(arg) || arg.equals("on"));
+                System.out.println("print tokens: " + (flags.isPrintTokens() ? "on" : "off"));
             } else if (line.startsWith(":ast ")) {
                 var arg = line.substring(5);
-                printAst = Boolean.parseBoolean(arg) || arg.equals("on");
-                System.out.println("print ast: " + (printAst ? "on" : "off"));
+                flags.setPrintAst(Boolean.parseBoolean(arg) || arg.equals("on"));
+                System.out.println("print ast: " + (flags.isPrintAst() ? "on" : "off"));
             } else if (line.startsWith(":pev ")) {
                 var arg = line.substring(5);
-                printEvaluable = Boolean.parseBoolean(arg) || arg.equals("on");
-                System.out.println("print evaluable: " + (printEvaluable ? "on" : "off"));
+                flags.setPrintEvaluable(Boolean.parseBoolean(arg) || arg.equals("on"));
+                System.out.println("print evaluable: " + (flags.isPrintEvaluable() ? "on" : "off"));
             } else if (!line.isEmpty()) {
                 lineBuffer.add(line);
                 unmatchedBraces += countUnmatchedBraces(line);
@@ -90,7 +91,7 @@ public class Lox {
                     var source = String.join("\n", lineBuffer);
                     lineBuffer.clear();
                     unmatchedBraces = 0;
-                    runConsole(source, printTokens, printAst, printEvaluable);
+                    run(source, flags);
                 }
                 hadError = false;
             }
@@ -120,24 +121,14 @@ public class Lox {
     }
 
     private static void run(String source) {
-        var scanner = new Scanner(source);
-        var tokens = scanner.scanTokens();
-
-        var parser = new Parser(tokens);
-        var statements = parser.parse();
-
-        if (hadError) {
-            return;
-        }
-
-        interpreter.interpret(statements);
+        run(source, new Flags());
     }
 
-    private static void runConsole(String source, boolean printTokens, boolean printAst, boolean printEvaluable) {
+    private static void run(String source, Flags flags) {
         var scanner = new Scanner(source);
         var tokens = scanner.scanTokens();
 
-        if (printTokens) {
+        if (flags.printTokens) {
             for (var token : tokens) {
                 System.out.println(token);
             }
@@ -146,16 +137,23 @@ public class Lox {
         var parser = new Parser(tokens);
         var statements = parser.parse();
 
+        if (flags.printAst) {
+            System.out.println(new AstPrinter().print(statements));
+        }
+
+        if (flags.printEvaluable) {
+            statements = printLastEvaluable(statements);
+        }
+
         if (hadError) {
             return;
         }
 
-        if (printAst) {
-            System.out.println(new AstPrinter().print(statements));
-        }
+        var resolver = new Resolver(interpreter);
+        resolver.resolve(statements);
 
-        if (printEvaluable) {
-            statements = printLastEvaluable(statements);
+        if (hadError) {
+            return;
         }
 
         interpreter.interpret(statements);
@@ -207,5 +205,13 @@ public class Lox {
         } else {
             report(token.getLine(), " at '" + token.getLexeme() + "'", message);
         }
+    }
+
+    @Getter
+    @Setter
+    private static class Flags {
+        private boolean printTokens = false;
+        private boolean printAst = false;
+        private boolean printEvaluable = false;
     }
 }

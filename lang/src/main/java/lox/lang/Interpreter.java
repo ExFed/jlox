@@ -1,20 +1,33 @@
 package lox.lang;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.With;
 
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
-    @Getter
+    @With
     private final Environment environment;
 
+    @Getter
+    private final Environment globals;
+
+    private final Map<Expr, Integer> locals;
+
     Interpreter() {
-        this(new Environment());
+        this.globals  = new Environment();
+        this.environment = globals;
+        this.locals = new HashMap<>();
 
         // globals
-        this.environment.define("clock", new LoxCallable() {
+        this.globals.define("clock", new LoxCallable() {
             @Override
             public int arity() { return 0; }
 
@@ -26,14 +39,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             @Override
             public String toString() { return "<native fn>"; }
         });
-    }
-
-    Interpreter(Environment environment) {
-        this.environment = environment;
-    }
-
-    Interpreter push() {
-        return new Interpreter(new Environment(environment));
     }
 
     public void interpret(List<Stmt> statements) {
@@ -91,7 +96,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.getName());
+        return lookUpVariable(expr.getName(), expr);
+    }
+
+    private Object lookUpVariable(Token name, Expr expr) {
+        var distance = locals.get(expr);
+        if (distance != null) {
+            return environment.getAt(distance, name.getLexeme());
+        } else {
+            return globals.get(name);
+        }
     }
 
     @Override
@@ -264,7 +278,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private void checkNumberOperands(Token operator, Object... operands) {
         for (var operand : operands) {
             if (!(operand instanceof Double)) {
-                throw new RuntimeError(operator, "Operands must be numbers");
+                throw new RuntimeError(operator, "Operands must be numbers, got " + operand.getClass());
             }
         }
     }
@@ -277,8 +291,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         stmt.accept(this);
     }
 
+    void resolve(Expr expr, int depth) {
+        locals.put(expr, depth);
+    }
+
     void executeBlock(List<Stmt> statements) {
-        var inner = push();
+        var inner = withEnvironment(new Environment(environment));
         for (var statement : statements) {
             inner.execute(statement);
         }
