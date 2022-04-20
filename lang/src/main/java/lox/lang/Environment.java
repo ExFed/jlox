@@ -3,6 +3,9 @@ package lox.lang;
 import java.util.HashMap;
 import java.util.Map;
 
+import lombok.ToString;
+
+@ToString
 class Environment {
 
     private static final Object UNDEFINED = new Object();

@@ -1,17 +1,16 @@
 package lox.lang;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private final Interpreter interpreter;
-    private final Deque<Map<String, Boolean>> scopes = new ArrayDeque<>();
+    private final Stack<Map<String, Boolean>> scopes = new Stack<>();
 
     private FunctionType currentFunction = FunctionType.NONE;
 
@@ -211,15 +210,11 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
 
     private void resolveLocal(Expr expr, Token name) {
-        var iter = scopes.descendingIterator();
-        var depth = 0;
-        while (iter.hasNext()) {
-            var scope = iter.next();
-            if (scope.containsKey(name.getLexeme())) {
-                interpreter.resolve(expr, depth);
+        for (int i = scopes.size() - 1; i >= 0; i--) {
+            if (scopes.get(i).containsKey(name.getLexeme())) {
+                interpreter.resolve(expr, scopes.size() - 1 - i);
                 return;
             }
-            depth++;
         }
     }
 

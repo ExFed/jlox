@@ -5,27 +5,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.With;
 
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
-    @With
-    private final Environment environment;
-
     @Getter
-    private final Environment globals;
+    private final Environment globals = new Environment();
 
-    private final Map<Expr, Integer> locals;
+    private Environment environment = globals;
+
+    private final Map<Expr, Integer> locals = new HashMap<>();
 
     Interpreter() {
-        this.globals  = new Environment();
-        this.environment = globals;
-        this.locals = new HashMap<>();
-
         // globals
         this.globals.define("clock", new LoxCallable() {
             @Override
@@ -216,7 +207,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
-        executeBlock(stmt.getStatements());
+        executeBlock(stmt.getStatements(), new Environment(environment));
         return null;
     }
 
@@ -278,7 +269,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private void checkNumberOperands(Token operator, Object... operands) {
         for (var operand : operands) {
             if (!(operand instanceof Double)) {
-                throw new RuntimeError(operator, "Operands must be numbers, got " + operand.getClass());
+                var operandClass = operand != null ? operand.getClass() : null;
+                throw new RuntimeError(operator, "Operands must be numbers, got " + operandClass);
             }
         }
     }
@@ -295,10 +287,15 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         locals.put(expr, depth);
     }
 
-    void executeBlock(List<Stmt> statements) {
-        var inner = withEnvironment(new Environment(environment));
-        for (var statement : statements) {
-            inner.execute(statement);
+    void executeBlock(List<Stmt> statements, Environment environment) {
+        var previous = this.environment;
+        try {
+            this.environment = environment;
+            for (var statement : statements) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = previous;
         }
     }
 

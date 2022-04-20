@@ -15,15 +15,14 @@ public class LoxFunction implements LoxCallable {
     }
 
     @Override
-    public Object call(Interpreter enclosing, List<Object> arguments) {
+    public Object call(Interpreter interpreter, List<Object> arguments) {
         var environment = new Environment(closure);
         for (int i = 0; i < declaration.getParams().size(); i++) {
             environment.define(declaration.getParams().get(i).getLexeme(), arguments.get(i));
         }
 
-        var interpreter = enclosing.withEnvironment(environment);
         try {
-            interpreter.executeBlock(declaration.getBody());
+            interpreter.executeBlock(declaration.getBody(), environment);
         } catch (Return returnValue) {
             return returnValue.getValue();
         }

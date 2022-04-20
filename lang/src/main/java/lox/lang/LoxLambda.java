@@ -16,15 +16,14 @@ public class LoxLambda implements LoxCallable {
     }
 
     @Override
-    public Object call(Interpreter enclosing, List<Object> arguments) {
+    public Object call(Interpreter interpreter, List<Object> arguments) {
         var environment = new Environment(closure);
         for (int i = 0; i < params.size(); i++) {
             environment.define(params.get(i).getLexeme(), arguments.get(i));
         }
 
-        var interpreter = enclosing.withEnvironment(environment);
         try {
-            interpreter.executeBlock(body);
+            interpreter.executeBlock(body, environment);
         } catch (Return returnValue) {
             return returnValue.getValue();
         }
