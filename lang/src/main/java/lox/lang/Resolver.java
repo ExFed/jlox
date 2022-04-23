@@ -5,12 +5,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 @RequiredArgsConstructor
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private final Interpreter interpreter;
-    private final Stack<Map<String, Boolean>> scopes = new Stack<>();
+    private final Stack<Map<String, Variable>> scopes = new Stack<>();
 
     private FunctionType currentFunction = FunctionType.NONE;
 
@@ -149,7 +151,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitVariableExpr(Expr.Variable expr) {
-        if (!scopes.isEmpty() && scopes.peek().get(expr.getName().getLexeme()) == Boolean.FALSE) {
+        var lexeme = expr.getName().getLexeme();
+        var usage = scopes.isEmpty() ? null : scopes.peek().get(lexeme).getUsage();
+        if (usage == VarUsage.DECLARED) {
             Lox.error(expr.getName(), "Can't read local variable within its own initializer.");
         }
         resolveLocal(expr, expr.getName());
@@ -184,11 +188,16 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
 
     private void beginScope() {
-        scopes.push(new HashMap<String, Boolean>());
+        scopes.push(new HashMap<>());
     }
 
     private void endScope() {
-        scopes.pop();
+        var scope = scopes.pop();
+        for (var entry : scope.entrySet()) {
+            if (entry.getValue().getUsage() != VarUsage.REFERENCED) {
+                Lox.error(entry.getValue().getName(), "Unused local variable.");
+            }
+        }
     }
 
     private void declare(Token name) {
@@ -199,19 +208,23 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         if (scope.containsKey(name.getLexeme())) {
             Lox.error(name, "Already a variable with this name in scope.");
         }
-        scope.put(name.getLexeme(), false);
+        scope.put(name.getLexeme(), new Variable(name));
     }
 
     private void define(Token name) {
         if (scopes.isEmpty()) {
             return;
         }
-        scopes.peek().put(name.getLexeme(), true);
+        scopes.peek()
+            .get(name.getLexeme())
+            .setUsage(VarUsage.DEFINED);
     }
 
     private void resolveLocal(Expr expr, Token name) {
         for (int i = scopes.size() - 1; i >= 0; i--) {
-            if (scopes.get(i).containsKey(name.getLexeme())) {
+            var variable = scopes.get(i).get(name.getLexeme());
+            if (variable != null) {
+                variable.setUsage(VarUsage.REFERENCED);
                 interpreter.resolve(expr, scopes.size() - 1 - i);
                 return;
             }
@@ -221,5 +234,19 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private enum FunctionType {
         NONE,
         FUNCTION
+    }
+
+    private enum VarUsage {
+        DECLARED,
+        DEFINED,
+        REFERENCED
+    }
+
+    @Getter
+    @Setter
+    @RequiredArgsConstructor
+    private static class Variable {
+        private final Token name;
+        private VarUsage usage = VarUsage.DECLARED;
     }
 }
