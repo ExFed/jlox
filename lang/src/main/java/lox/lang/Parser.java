@@ -25,7 +25,6 @@ class Parser {
     }
 
     private Stmt declaration() {
-        // System.err.println("=> declaration()");
         try {
             if (match(CLASS)) {
                 return classDeclaration();
@@ -59,7 +58,6 @@ class Parser {
     }
 
     private Stmt statement() {
-        // System.err.println("=> statement()");
         if (match(FOR)) {
             return forStatement();
         }
@@ -165,7 +163,6 @@ class Parser {
     }
 
     private Stmt expressionStatement() {
-        // System.err.println("=> expressionStatement()");
         var expr = expression();
         consume(SEMICOLON, "Expect ';' after expression.");
         return new Stmt.Expression(expr);
@@ -187,7 +184,6 @@ class Parser {
     }
 
     private Expr assignment() {
-        // System.err.println("=> assignment()");
         var expr = conditional();
         if (match(EQUAL)) {
             var equals = previous();
@@ -195,6 +191,9 @@ class Parser {
             if (expr instanceof Expr.Variable) {
                 var name = ((Expr.Variable) expr).getName();
                 return new Expr.Assign(name, value);
+            } else if (expr instanceof Expr.Get) {
+                var get = (Expr.Get) expr;
+                return new Expr.Set(get.getObject(), get.getName(), value);
             }
             error(equals, "Invalid assignment target.");
         }
@@ -202,7 +201,6 @@ class Parser {
     }
 
     private Expr expression() {
-        // System.err.println("=> expression()");
         return assignment();
     }
 
@@ -221,7 +219,6 @@ class Parser {
 
     // conditional -> equality ( '?' expression ':' expression )?
     private Expr conditional() {
-        // System.err.println("=> conditional()");
         var expr = or();
 
         if (match(QUESTION)) {
@@ -237,7 +234,6 @@ class Parser {
     }
 
     private Expr or() {
-        // System.err.println("=> or()");
         var expr = and();
 
         while (match(OR)) {
@@ -250,7 +246,6 @@ class Parser {
     }
 
     private Expr and() {
-        // System.err.println("=> and()");
         var expr = equality();
 
         while (match(AND)) {
@@ -263,7 +258,6 @@ class Parser {
     }
 
     private Expr equality() {
-        // System.err.println("=> equality()");
         var expr = comparison();
 
         while (match(BANG_EQUAL, EQUAL_EQUAL)) {
@@ -276,7 +270,6 @@ class Parser {
     }
 
     private Expr comparison() {
-        // System.err.println("=> comparison()");
         var expr = term();
 
         while (match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL)) {
@@ -289,7 +282,6 @@ class Parser {
     }
 
     private Expr term() {
-        // System.err.println("=> term()");
         var expr = factor();
 
         while (match(MINUS, PLUS)) {
@@ -302,7 +294,6 @@ class Parser {
     }
 
     private Expr factor() {
-        // System.err.println("=> factor()");
         var expr = unary();
 
         while (match(SLASH, STAR)) {
@@ -329,11 +320,13 @@ class Parser {
     }
 
     private Expr call() {
-        // System.err.println("=> call()");
         var expr = lambda();
         while (true) {
             if (match(PAREN_LEFT)) {
                 expr = finishCall(expr);
+            } else if (match(DOT)) {
+                var name = consume(IDENTIFIER, "Expect property name after '.'.");
+                expr = new Expr.Get(expr, name);
             } else {
                 break;
             }
@@ -356,7 +349,6 @@ class Parser {
     }
 
     private Expr lambda() {
-        // System.err.println("=> lambda()");
         if (match(FUN)) {
             return funDefinition("lambda");
         }
@@ -382,7 +374,6 @@ class Parser {
     }
 
     private Expr primary() {
-        // System.err.println("=> primary()");
         if (match(FALSE))
             return new Expr.Literal(false);
         if (match(TRUE))
@@ -464,7 +455,6 @@ class Parser {
             current++;
         }
         var token = previous();
-        // System.err.println("** advance => " + token);
         return token;
     }
 

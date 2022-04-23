@@ -5,12 +5,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lox.lang.Expr.Assign;
 import lox.lang.Expr.Binary;
 import lox.lang.Expr.Call;
+import lox.lang.Expr.Get;
 import lox.lang.Expr.Grouping;
 import lox.lang.Expr.Lambda;
 import lox.lang.Expr.Literal;
 import lox.lang.Expr.Logical;
+import lox.lang.Expr.Set;
 import lox.lang.Expr.Ternary;
 import lox.lang.Expr.Unary;
 import lox.lang.Expr.Variable;
@@ -39,7 +42,7 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
-    public String visitAssignExpr(Expr.Assign expr) {
+    public String visitAssignExpr(Assign expr) {
         return parenthesizeExprs("= " + expr.getName().getLexeme(), expr.getValue());
     }
 
@@ -54,6 +57,11 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         exprs.add(expr.getCallee());
         exprs.addAll(expr.getArguments());
         return parenthesizeExprs("call", exprs);
+    }
+
+    @Override
+    public String visitGetExpr(Get expr) {
+        return parenthesizeExprs("get " + expr.getName().getLexeme(), expr.getObject());
     }
 
     @Override
@@ -81,6 +89,11 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     @Override
     public String visitLogicalExpr(Logical expr) {
         return parenthesizeExprs(expr.getOperator().getLexeme(), expr.getLeft(), expr.getRight());
+    }
+
+    @Override
+    public String visitSetExpr(Set expr) {
+        return parenthesizeExprs("set " + expr.getName(), expr.getObject(), expr.getValue());
     }
 
     @Override
