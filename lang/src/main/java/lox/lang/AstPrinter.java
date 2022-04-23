@@ -6,20 +6,23 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import lox.lang.Expr.Binary;
-import lox.lang.Expr.Ternary;
+import lox.lang.Expr.Call;
 import lox.lang.Expr.Grouping;
 import lox.lang.Expr.Lambda;
 import lox.lang.Expr.Literal;
 import lox.lang.Expr.Logical;
+import lox.lang.Expr.Ternary;
 import lox.lang.Expr.Unary;
 import lox.lang.Expr.Variable;
 import lox.lang.Stmt.Block;
+import lox.lang.Stmt.Class;
 import lox.lang.Stmt.Expression;
 import lox.lang.Stmt.Function;
 import lox.lang.Stmt.If;
 import lox.lang.Stmt.Print;
 import lox.lang.Stmt.Return;
 import lox.lang.Stmt.Var;
+import lox.lang.Stmt.While;
 
 public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
@@ -46,7 +49,7 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
-    public String visitCallExpr(Expr.Call expr) {
+    public String visitCallExpr(Call expr) {
         var exprs = new ArrayList<Expr>();
         exprs.add(expr.getCallee());
         exprs.addAll(expr.getArguments());
@@ -105,6 +108,11 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
+    public String visitClassStmt(Class stmt) {
+        return parenthesizeStmts("class " + stmt.getName().getLexeme(), stmt.getMethods());
+    }
+
+    @Override
     public String visitExpressionStmt(Expression stmt) {
         return parenthesizeExprs("stmt", stmt.getExpression());
     }
@@ -152,7 +160,7 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
-    public String visitWhileStmt(Stmt.While stmt) {
+    public String visitWhileStmt(While stmt) {
         var builder = new StringBuilder().append("{while ");
         var condition = stmt.getCondition().accept(this);
         builder.append(condition).append(" do ");
@@ -164,7 +172,7 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         return parenthesizeExprs(name, Arrays.asList(exprs));
     }
 
-    private String parenthesizeExprs(String name, List<Expr> exprs) {
+    private String parenthesizeExprs(String name, List<? extends Expr> exprs) {
         var builder = new StringBuilder();
         builder.append("(").append(name);
         for (var expr : exprs) {
@@ -177,7 +185,7 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         return parenthesizeStmts(name, Arrays.asList(stmts));
     }
 
-    private String parenthesizeStmts(String name, List<Stmt> stmts) {
+    private String parenthesizeStmts(String name, List<? extends Stmt> stmts) {
         var builder = new StringBuilder();
         builder.append("{").append(name).append(" ");
         for (var stmt : stmts) {

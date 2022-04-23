@@ -27,12 +27,15 @@ class Parser {
     private Stmt declaration() {
         // System.err.println("=> declaration()");
         try {
+            if (match(CLASS)) {
+                return classDeclaration();
+            }
             if (match(VAR)) {
                 return varDeclaration();
             }
             if (check(FUN) && checkNext(IDENTIFIER)) {
                 advance();
-                return funDeclaration("function");
+                return function("function");
             }
 
             return statement();
@@ -40,6 +43,19 @@ class Parser {
             synchronize();
             return null;
         }
+    }
+
+    private Stmt classDeclaration() {
+        var name = consume(IDENTIFIER, "Expect class name.");
+        consume(BRACE_LEFT, "Expect '{' before class body.");
+
+        var methods = new ArrayList<Stmt.Function>();
+        while (!check(BRACE_RIGHT) && !isAtEnd()) {
+            methods.add(function("method"));
+        }
+        consume(BRACE_RIGHT, "Expect '}' after class body.");
+
+        return new Stmt.Class(name, methods);
     }
 
     private Stmt statement() {
@@ -155,7 +171,7 @@ class Parser {
         return new Stmt.Expression(expr);
     }
 
-    private Stmt.Function funDeclaration(String kind) {
+    private Stmt.Function function(String kind) {
         var name = consume(IDENTIFIER, "Expect " + kind + " name.");
         var defn = funDefinition(kind);
         return new Stmt.Function(name, defn.getParams(), defn.getBody());
