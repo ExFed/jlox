@@ -1,15 +1,24 @@
 package lox.lang;
 
 import java.util.List;
+import java.util.Map;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NonNull;
 
 @Getter
 @AllArgsConstructor
 class LoxClass implements LoxCallable {
-    private final @NonNull String name;
+    private final String name;
+    private final Map<String, LoxFunction> methods;
+
+    LoxFunction findMethod(String name) {
+        if (methods.containsKey(name)) {
+            return methods.get(name);
+        }
+
+        return null;
+    }
 
     @Override
     public String toString() {

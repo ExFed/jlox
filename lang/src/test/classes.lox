@@ -1,0 +1,15 @@
+class Mouth {
+    chew(food, sound) {
+        print "Yummy " + food + " ... " + sound;
+    }
+}
+
+class Bacon {
+  eat() {
+    Mouth().chew("bacon", "Crunch crunch crunch!");
+  }
+}
+
+var bacon = Bacon();
+var eater = bacon.eat;
+eater(); // Prints "Yummy bacon ... Crunch crunch crunch!".
