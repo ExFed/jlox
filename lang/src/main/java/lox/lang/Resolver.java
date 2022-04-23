@@ -15,72 +15,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private FunctionType currentFunction = FunctionType.NONE;
 
     @Override
-    public Void visitBlockStmt(Stmt.Block stmt) {
-        beginScope();
-        resolve(stmt.getStatements());
-        endScope();
-        return null;
-    }
-
-    @Override
-    public Void visitExpressionStmt(Stmt.Expression stmt) {
-        resolve(stmt.getExpression());
-        return null;
-    }
-
-    @Override
-    public Void visitFunctionStmt(Stmt.Function stmt) {
-        declare(stmt.getName());
-        define(stmt.getName());
-        resolveFunction(stmt, FunctionType.FUNCTION);
-        return null;
-    }
-
-    @Override
-    public Void visitIfStmt(Stmt.If stmt) {
-        resolve(stmt.getCondition());
-        resolve(stmt.getThenBranch());
-        if (stmt.getElseBranch() != null) {
-            resolve(stmt.getElseBranch());
-        }
-        return null;
-    }
-
-    @Override
-    public Void visitPrintStmt(Stmt.Print stmt) {
-        resolve(stmt.getExpression());
-        return null;
-    }
-
-    @Override
-    public Void visitReturnStmt(Stmt.Return stmt) {
-        if (currentFunction == FunctionType.NONE) {
-            Lox.error(stmt.getKeyword(), "Cannot return from top-level code.");
-        }
-        if (stmt.getValue() != null) {
-            resolve(stmt.getValue());
-        }
-        return null;
-    }
-
-    @Override
-    public Void visitVarStmt(Stmt.Var stmt) {
-        declare(stmt.getName());
-        if (stmt.getInitializer() != null) {
-            resolve(stmt.getInitializer());
-        }
-        define(stmt.getName());
-        return null;
-    }
-
-    @Override
-    public Void visitWhileStmt(Stmt.While stmt) {
-        resolve(stmt.getCondition());
-        resolve(stmt.getBody());
-        return null;
-    }
-
-    @Override
     public Void visitAssignExpr(Expr.Assign expr) {
         resolve(expr.getValue());
         resolveLocal(expr, expr.getName());
@@ -153,6 +87,72 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             Lox.error(expr.getName(), "Can't read local variable within its own initializer.");
         }
         resolveLocal(expr, expr.getName());
+        return null;
+    }
+
+    @Override
+    public Void visitBlockStmt(Stmt.Block stmt) {
+        beginScope();
+        resolve(stmt.getStatements());
+        endScope();
+        return null;
+    }
+
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        resolve(stmt.getExpression());
+        return null;
+    }
+
+    @Override
+    public Void visitFunctionStmt(Stmt.Function stmt) {
+        declare(stmt.getName());
+        define(stmt.getName());
+        resolveFunction(stmt, FunctionType.FUNCTION);
+        return null;
+    }
+
+    @Override
+    public Void visitIfStmt(Stmt.If stmt) {
+        resolve(stmt.getCondition());
+        resolve(stmt.getThenBranch());
+        if (stmt.getElseBranch() != null) {
+            resolve(stmt.getElseBranch());
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        resolve(stmt.getExpression());
+        return null;
+    }
+
+    @Override
+    public Void visitReturnStmt(Stmt.Return stmt) {
+        if (currentFunction == FunctionType.NONE) {
+            Lox.error(stmt.getKeyword(), "Cannot return from top-level code.");
+        }
+        if (stmt.getValue() != null) {
+            resolve(stmt.getValue());
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt) {
+        declare(stmt.getName());
+        if (stmt.getInitializer() != null) {
+            resolve(stmt.getInitializer());
+        }
+        define(stmt.getName());
+        return null;
+    }
+
+    @Override
+    public Void visitWhileStmt(Stmt.While stmt) {
+        resolve(stmt.getCondition());
+        resolve(stmt.getBody());
         return null;
     }
 

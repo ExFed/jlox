@@ -36,6 +36,11 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
+    public String visitAssignExpr(Expr.Assign expr) {
+        return parenthesizeExprs("= " + expr.getName().getLexeme(), expr.getValue());
+    }
+
+    @Override
     public String visitBinaryExpr(Binary expr) {
         return parenthesizeExprs(expr.getOperator().getLexeme(), expr.getLeft(), expr.getRight());
     }
@@ -76,11 +81,6 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
-    public String visitUnaryExpr(Unary expr) {
-        return parenthesizeExprs(expr.getOperator().getLexeme(), expr.getRight());
-    }
-
-    @Override
     public String visitTernaryExpr(Ternary expr) {
         return parenthesizeExprs(
                 expr.getLeftOp().getLexeme() + expr.getRightOp().getLexeme(),
@@ -90,13 +90,13 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
-    public String visitVariableExpr(Variable expr) {
-        return parenthesizeExprs("variable " + expr.getName().getLexeme());
+    public String visitUnaryExpr(Unary expr) {
+        return parenthesizeExprs(expr.getOperator().getLexeme(), expr.getRight());
     }
 
     @Override
-    public String visitAssignExpr(Expr.Assign expr) {
-        return parenthesizeExprs("= " + expr.getName().getLexeme(), expr.getValue());
+    public String visitVariableExpr(Variable expr) {
+        return parenthesizeExprs("variable " + expr.getName().getLexeme());
     }
 
     @Override
@@ -107,6 +107,13 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     @Override
     public String visitExpressionStmt(Expression stmt) {
         return parenthesizeExprs("stmt", stmt.getExpression());
+    }
+
+    @Override
+    public String visitFunctionStmt(Function stmt) {
+        var params = stmt.getParams().stream().map(Token::getLexeme).collect(Collectors.joining(" "));
+        String nameAndParams = "fun " + stmt.getName().getLexeme() + "(" + params + ")";
+        return "(" + nameAndParams + " " + parenthesizeStmts("body", stmt.getBody()) + ")";
     }
 
     @Override
@@ -122,13 +129,6 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
             builder.append(" else ").append(elseBranch);
         }
         return builder.append("}").toString();
-    }
-
-    @Override
-    public String visitFunctionStmt(Function stmt) {
-        var params = stmt.getParams().stream().map(Token::getLexeme).collect(Collectors.joining(" "));
-        String nameAndParams = "fun " + stmt.getName().getLexeme() + "(" + params + ")";
-        return "(" + nameAndParams + " " + parenthesizeStmts("body", stmt.getBody()) + ")";
     }
 
     @Override

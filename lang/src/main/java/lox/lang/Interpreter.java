@@ -50,72 +50,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Object visitGroupingExpr(Expr.Grouping expr) {
-        return evaluate(expr.getExpression());
-    }
-
-    @Override
-    public Object visitLambdaExpr(Expr.Lambda expr) {
-        return new LoxLambda(expr.getParams(), expr.getBody(), environment);
-    }
-
-    @Override
-    public Object visitLiteralExpr(Expr.Literal expr) {
-        return expr.getValue();
-    }
-
-    @Override
-    public Object visitLogicalExpr(Expr.Logical expr) {
-        var left = evaluate(expr.getLeft());
-        var operator = expr.getOperator();
-        var leftIsTruthy = isTruthy(left);
-
-        if (operator.getType() == TokenType.OR) {
-            if (leftIsTruthy) {
-                return left;
-            }
-        } else if (operator.getType() == TokenType.AND) {
-            if (!leftIsTruthy) {
-                return left;
-            }
-        } else {
-            throw new UnsupportedOperationException("unsupported operation: " + operator);
-        }
-
-        return evaluate(expr.getRight());
-    }
-
-    @Override
-    public Object visitVariableExpr(Expr.Variable expr) {
-        return lookUpVariable(expr.getName(), expr);
-    }
-
-    private Object lookUpVariable(Token name, Expr expr) {
-        var distance = locals.get(expr);
-        if (distance != null) {
-            return environment.getAt(distance, name.getLexeme());
-        } else {
-            return globals.get(name);
-        }
-    }
-
-    @Override
-    public Object visitUnaryExpr(Expr.Unary expr) {
-        var operator = expr.getOperator();
-        var right = evaluate(expr.getRight());
-
-        switch (operator.getType()) {
-            case MINUS:
-                checkNumberOperands(expr.getOperator(), right);
-                return -(double) right;
-            case BANG:
-                return !isTruthy(right);
-            default:
-                throw new UnsupportedOperationException("unsupported operation: " + operator);
-        }
-    }
-
-    @Override
     public Object visitBinaryExpr(Expr.Binary expr) {
         var operator = expr.getOperator();
         var left = evaluate(expr.getLeft());
@@ -184,6 +118,42 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitGroupingExpr(Expr.Grouping expr) {
+        return evaluate(expr.getExpression());
+    }
+
+    @Override
+    public Object visitLambdaExpr(Expr.Lambda expr) {
+        return new LoxLambda(expr.getParams(), expr.getBody(), environment);
+    }
+
+    @Override
+    public Object visitLiteralExpr(Expr.Literal expr) {
+        return expr.getValue();
+    }
+
+    @Override
+    public Object visitLogicalExpr(Expr.Logical expr) {
+        var left = evaluate(expr.getLeft());
+        var operator = expr.getOperator();
+        var leftIsTruthy = isTruthy(left);
+
+        if (operator.getType() == TokenType.OR) {
+            if (leftIsTruthy) {
+                return left;
+            }
+        } else if (operator.getType() == TokenType.AND) {
+            if (!leftIsTruthy) {
+                return left;
+            }
+        } else {
+            throw new UnsupportedOperationException("unsupported operation: " + operator);
+        }
+
+        return evaluate(expr.getRight());
+    }
+
+    @Override
     public Object visitTernaryExpr(Expr.Ternary expr) {
         var leftOp = expr.getLeftOp();
         var rightOp = expr.getRightOp();
@@ -203,6 +173,27 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             default:
                 throw new UnsupportedOperationException("unsupported operation: " + leftOp);
         }
+    }
+
+    @Override
+    public Object visitUnaryExpr(Expr.Unary expr) {
+        var operator = expr.getOperator();
+        var right = evaluate(expr.getRight());
+
+        switch (operator.getType()) {
+            case MINUS:
+                checkNumberOperands(expr.getOperator(), right);
+                return -(double) right;
+            case BANG:
+                return !isTruthy(right);
+            default:
+                throw new UnsupportedOperationException("unsupported operation: " + operator);
+        }
+    }
+
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr) {
+        return lookUpVariable(expr.getName(), expr);
     }
 
     @Override
@@ -264,6 +255,15 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             execute(stmt.getBody());
         }
         return null;
+    }
+
+    private Object lookUpVariable(Token name, Expr expr) {
+        var distance = locals.get(expr);
+        if (distance != null) {
+            return environment.getAt(distance, name.getLexeme());
+        } else {
+            return globals.get(name);
+        }
     }
 
     private void checkNumberOperands(Token operator, Object... operands) {
