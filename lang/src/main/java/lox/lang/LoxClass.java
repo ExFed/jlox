@@ -1,16 +1,27 @@
 package lox.lang;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lox.lang.Stmt.Class;
 
 @Getter
-@AllArgsConstructor
 class LoxClass implements LoxCallable {
-    private final String name;
-    private final Map<String, LoxFunction> methods;
+    private final Stmt.Class declaration;
+    private final Environment closure;
+    private final Map<String, LoxFunction> methods = new HashMap<>();
+
+    public LoxClass(Class declaration, Environment closure) {
+        this.declaration = declaration;
+        this.closure = closure;
+
+        for (var method : declaration.getMethods()) {
+            var function = new LoxFunction(method, closure);
+            methods.put(method.getName().getLexeme(), function);
+        }
+    }
 
     LoxFunction findMethod(String name) {
         if (methods.containsKey(name)) {
@@ -22,17 +33,21 @@ class LoxClass implements LoxCallable {
 
     @Override
     public String toString() {
-        return "class " + name;
+        return "class " + declaration.getName();
     }
 
     @Override
     public int arity() {
-        return 0;
+        return declaration.getParams().size();
     }
 
     @Override
     public Object call(Interpreter interpreter, List<Object> arguments) {
+        var declParams = declaration.getParams();
         var instance = new LoxInstance(this);
+        for (int i = 0; i < declParams.size(); i++) {
+            instance.getFields().put(declParams.get(i).getLexeme(), arguments.get(i));
+        }
         return instance;
     }
 }
