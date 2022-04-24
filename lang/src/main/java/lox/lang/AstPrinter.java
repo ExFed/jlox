@@ -15,6 +15,7 @@ import lox.lang.Expr.Literal;
 import lox.lang.Expr.Logical;
 import lox.lang.Expr.Set;
 import lox.lang.Expr.Ternary;
+import lox.lang.Expr.This;
 import lox.lang.Expr.Unary;
 import lox.lang.Expr.Variable;
 import lox.lang.Stmt.Block;
@@ -103,6 +104,11 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
                 expr.getLeft(),
                 expr.getMiddle(),
                 expr.getRight());
+    }
+
+    @Override
+    public String visitThisExpr(This expr) {
+        return parenthesizeExprs("this");
     }
 
     @Override

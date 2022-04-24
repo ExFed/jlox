@@ -364,7 +364,7 @@ class Parser {
                     error(peek(), "Cannot declare more than 255 paramters.");
                 }
                 parameters.add(consume(IDENTIFIER, "Expect parameter name."));
-            } while(match(COMMA));
+            } while (match(COMMA));
         }
         consume(PAREN_RIGHT, "Expect ')' after parameters.");
 
@@ -374,16 +374,24 @@ class Parser {
     }
 
     private Expr primary() {
-        if (match(FALSE))
+        if (match(FALSE)) {
             return new Expr.Literal(false);
-        if (match(TRUE))
+        }
+        if (match(TRUE)) {
             return new Expr.Literal(true);
-        if (match(NIL))
+        }
+        if (match(NIL)) {
             return new Expr.Literal(null);
-        if (match(NUMBER, STRING))
+        }
+        if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().getLiteral());
-        if (match(IDENTIFIER))
+        }
+        if (match(THIS)) {
+            return new Expr.This(previous());
+        }
+        if (match(IDENTIFIER)) {
             return new Expr.Variable(previous());
+        }
         if (match(PAREN_LEFT)) {
             var expr = expression();
             consume(PAREN_RIGHT, "Expect ')' after expression.");
