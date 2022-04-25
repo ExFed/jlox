@@ -33,7 +33,7 @@ class LoxClass implements LoxCallable {
 
     @Override
     public String toString() {
-        return "class " + declaration.getName();
+        return "class " + declaration.getName().getLexeme();
     }
 
     @Override
@@ -48,6 +48,9 @@ class LoxClass implements LoxCallable {
         for (int i = 0; i < declParams.size(); i++) {
             instance.getFields().put(declParams.get(i).getLexeme(), arguments.get(i));
         }
+        var environment = new Environment(closure);
+        environment.define("this", instance);
+        interpreter.executeBlock(declaration.getInit(), environment);
         return instance;
     }
 }

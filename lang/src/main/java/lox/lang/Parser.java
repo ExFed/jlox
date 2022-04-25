@@ -48,15 +48,21 @@ class Parser {
         var name = consume(IDENTIFIER, "Expect class name.");
         var parameters = match(PAREN_LEFT) ? parameters() : List.<Token>of();
 
-        consume(BRACE_LEFT, "Expect '{' before class body.");
-
         var methods = new ArrayList<Stmt.Function>();
-        while (!check(BRACE_RIGHT) && !isAtEnd()) {
-            methods.add(function("method"));
-        }
-        consume(BRACE_RIGHT, "Expect '}' after class body.");
+        var init = new ArrayList<Stmt>();
 
-        return new Stmt.Class(name, parameters, methods);
+        if (match(BRACE_LEFT)) {
+            while (!check(BRACE_RIGHT) && !isAtEnd()) {
+                if (match(BRACE_LEFT)) {
+                    init.addAll(block());
+                } else {
+                    methods.add(function("method"));
+                }
+            }
+            consume(BRACE_RIGHT, "Expect '}' after class body.");
+        }
+
+        return new Stmt.Class(name, parameters, init, methods);
     }
 
     private List<Token> parameters() {
