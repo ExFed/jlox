@@ -37,14 +37,19 @@ class LoxClass implements LoxCallable {
 
     @Override
     public int arity() {
-        return 0;
+        return declaration.getParams().size();
     }
 
     @Override
     public Object call(Interpreter interpreter, List<Object> arguments) {
+        var declParams = declaration.getParams();
         var instance = new LoxInstance(this);
+        for (int i = 0; i < declParams.size(); i++) {
+            instance.getFields().put(declParams.get(i).getLexeme(), arguments.get(i));
+        }
         var environment = new Environment(closure);
         environment.define("this", instance);
+        interpreter.executeBlock(declaration.getInit(), environment);
         return instance;
     }
 }

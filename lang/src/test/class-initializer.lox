@@ -1,0 +1,20 @@
+class Appender(init) {
+    {
+        this.value = this.init;
+    }
+
+    append(x) {
+        this.value = this.value + x;
+        return this;
+    }
+
+    appendInit() {
+        return this.append(this.init);
+    }
+}
+
+var adder = Appender("hello, ");
+adder.append("lox! ").appendInit().append("world!");
+print adder.value;
+
+// should print "hello, lox! hello, world!"

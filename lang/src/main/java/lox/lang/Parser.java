@@ -46,15 +46,37 @@ class Parser {
 
     private Stmt classDeclaration() {
         var name = consume(IDENTIFIER, "Expect class name.");
-        consume(BRACE_LEFT, "Expect '{' before class body.");
+        var parameters = match(PAREN_LEFT) ? parameters() : List.<Token>of();
 
         var methods = new ArrayList<Stmt.Function>();
-        while (!check(BRACE_RIGHT) && !isAtEnd()) {
-            methods.add(function("method"));
-        }
-        consume(BRACE_RIGHT, "Expect '}' after class body.");
+        var init = new ArrayList<Stmt>();
 
-        return new Stmt.Class(name, methods);
+        if (match(BRACE_LEFT)) {
+            while (!check(BRACE_RIGHT) && !isAtEnd()) {
+                if (match(BRACE_LEFT)) {
+                    init.addAll(block());
+                } else {
+                    methods.add(function("method"));
+                }
+            }
+            consume(BRACE_RIGHT, "Expect '}' after class body.");
+        }
+
+        return new Stmt.Class(name, parameters, init, methods);
+    }
+
+    private List<Token> parameters() {
+        ArrayList<Token> parameters = new ArrayList<Token>();
+        if (!check(PAREN_RIGHT)) {
+            do {
+                if (parameters.size() >= 255) {
+                    error(peek(), "Cannot declare more than 255 paramters.");
+                }
+                parameters.add(consume(IDENTIFIER, "Expect parameter name."));
+            } while (match(COMMA));
+        }
+        consume(PAREN_RIGHT, "Expect ')' after parameters.");
+        return parameters;
     }
 
     private Stmt statement() {
