@@ -1,16 +1,26 @@
 package lox.lang;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 class LoxClass implements LoxCallable {
-    private final String name;
-    private final Map<String, LoxFunction> methods;
+    private final Stmt.Class declaration;
+    private final Environment closure;
+    private final Map<String, LoxFunction> methods = new HashMap<>();
+
+    public LoxClass(Stmt.Class declaration, Environment closure) {
+        this.declaration = declaration;
+        this.closure = closure;
+
+        for (var method : declaration.getMethods()) {
+            var function = new LoxFunction(method, closure);
+            methods.put(method.getName().getLexeme(), function);
+        }
+    }
 
     LoxFunction findMethod(String name) {
         if (methods.containsKey(name)) {
@@ -22,7 +32,7 @@ class LoxClass implements LoxCallable {
 
     @Override
     public String toString() {
-        return "class " + name;
+        return "class " + declaration.getName().getLexeme();
     }
 
     @Override
@@ -33,6 +43,8 @@ class LoxClass implements LoxCallable {
     @Override
     public Object call(Interpreter interpreter, List<Object> arguments) {
         var instance = new LoxInstance(this);
+        var environment = new Environment(closure);
+        environment.define("this", instance);
         return instance;
     }
 }

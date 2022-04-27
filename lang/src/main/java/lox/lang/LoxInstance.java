@@ -32,6 +32,6 @@ class LoxInstance {
 
     @Override
     public String toString() {
-        return "instance of " + loxClass.getName();
+        return "instance " + loxClass.getDeclaration().getName().getLexeme();
     }
 }
