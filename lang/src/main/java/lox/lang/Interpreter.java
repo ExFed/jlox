@@ -7,7 +7,7 @@ import java.util.Map;
 
 import lombok.Getter;
 
-public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<CallResult> {
 
     @Getter
     private final Environment globals = new Environment();
@@ -224,71 +224,72 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Void visitBlockStmt(Stmt.Block stmt) {
-        executeBlock(stmt.getStatements(), new Environment(environment));
-        return null;
+    public CallResult visitBlockStmt(Stmt.Block stmt) {
+        return executeBlock(stmt.getStatements(), new Environment(environment));
     }
 
     @Override
-    public Void visitClassStmt(Stmt.Class stmt) {
+    public CallResult visitClassStmt(Stmt.Class stmt) {
         var loxClass = new LoxClass(stmt, environment);
         environment.define(stmt.getName().getLexeme(), loxClass);
         return null;
     }
 
     @Override
-    public Void visitExpressionStmt(Stmt.Expression stmt) {
-        evaluate(stmt.getExpression());
-        return null;
+    public CallResult visitExpressionStmt(Stmt.Expression stmt) {
+        var value = evaluate(stmt.getExpression());
+        return new CallResult(false, value);
     }
 
     @Override
-    public Void visitFunctionStmt(Stmt.Function stmt) {
+    public CallResult visitFunctionStmt(Stmt.Function stmt) {
         var function = new LoxFunction(stmt, environment);
         environment.define(stmt.getName().getLexeme(), function);
-        return null;
+        return new CallResult(false, function);
     }
 
     @Override
-    public Void visitIfStmt(Stmt.If stmt) {
+    public CallResult visitIfStmt(Stmt.If stmt) {
         if (isTruthy(evaluate(stmt.getCondition()))) {
-            execute(stmt.getThenBranch());
+            return execute(stmt.getThenBranch());
         } else if (stmt.getElseBranch() != null) {
-            execute(stmt.getElseBranch());
+            return execute(stmt.getElseBranch());
         }
-        return null;
+        return new CallResult(false, null);
     }
 
     @Override
-    public Void visitPrintStmt(Stmt.Print stmt) {
+    public CallResult visitPrintStmt(Stmt.Print stmt) {
         var value = evaluate(stmt.getExpression());
         System.out.println(stringify(value));
-        return null;
+        return new CallResult(false, value);
     }
 
     @Override
-    public Void visitReturnStmt(Stmt.Return stmt) {
+    public CallResult visitReturnStmt(Stmt.Return stmt) {
         var value = stmt.getValue() == null ? null : evaluate(stmt.getValue());
-        throw new Return(value);
+        return new CallResult(true, value);
     }
 
     @Override
-    public Void visitVarStmt(Stmt.Var stmt) {
+    public CallResult visitVarStmt(Stmt.Var stmt) {
         if (stmt.getInitializer() != null) {
             var value = evaluate(stmt.getInitializer());
             environment.define(stmt.getName().getLexeme(), value);
+            return new CallResult(false, value);
         } else {
             environment.declare(stmt.getName().getLexeme());
+            return new CallResult(false, null);
         }
-        return null;
     }
 
     @Override
-    public Void visitWhileStmt(Stmt.While stmt) {
-        while (isTruthy(evaluate(stmt.getCondition()))) {
-            execute(stmt.getBody());
+    public CallResult visitWhileStmt(Stmt.While stmt) {
+        var result = new CallResult(false, null);
+        while (isTruthy(evaluate(stmt.getCondition())) && !result.isReturning()) {
+            result = execute(stmt.getBody());
         }
-        return null;
+        return result;
     }
 
     private Object lookUpVariable(Token name, Expr expr) {
@@ -313,24 +314,29 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return expr.accept(this);
     }
 
-    private void execute(Stmt stmt) {
-        stmt.accept(this);
+    private CallResult execute(Stmt stmt) {
+        return stmt.accept(this);
     }
 
     void resolve(Expr expr, int depth) {
         locals.put(expr, depth);
     }
 
-    void executeBlock(List<Stmt> statements, Environment environment) {
+    CallResult executeBlock(List<Stmt> statements, Environment environment) {
         var previous = this.environment;
+        var result = new CallResult(false, null);
         try {
             this.environment = environment;
             for (var statement : statements) {
-                execute(statement);
+                result = execute(statement);
+                if (result.isReturning()) {
+                    break;
+                }
             }
         } finally {
             this.environment = previous;
         }
+        return result;
     }
 
     private boolean isTruthy(Object object) {

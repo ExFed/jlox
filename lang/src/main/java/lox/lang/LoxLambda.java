@@ -22,12 +22,8 @@ public class LoxLambda implements LoxCallable {
             environment.define(params.get(i).getLexeme(), arguments.get(i));
         }
 
-        try {
-            interpreter.executeBlock(body, environment);
-        } catch (Return returnValue) {
-            return returnValue.getValue();
-        }
-        return null;
+        var result = interpreter.executeBlock(body, environment);
+        return result.getValue();
     }
 
     @Override
